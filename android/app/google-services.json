@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "281361528787",
+    "project_id": "tyro-ecomm---admin-app",
+    "storage_bucket": "tyro-ecomm---admin-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:281361528787:android:ba2aa3c742638b9b23e126",
+        "android_client_info": {
+          "package_name": "com.theimranahmed.tyroecom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOuycReiKxhfiWFicHLDf2LAE3LLpNKBc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
