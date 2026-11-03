@@ -85,22 +85,38 @@ export async function playChaChingSound(): Promise<void> {
     }
 
     // Configure audio mode for immediate playback on physical devices
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
-    });
-
-    if (cachedSound) {
-      await cachedSound.replayAsync();
-      return;
+    try {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+      });
+    } catch (modeErr) {
+      console.warn('[SoundService] Audio.setAudioModeAsync note:', modeErr);
     }
 
-    const { sound } = await Audio.Sound.createAsync(
-      require('../../assets/sounds/chaching.wav'),
-      { shouldPlay: true, volume: 1.0 }
-    );
-    cachedSound = sound;
+    if (cachedSound) {
+      try {
+        await cachedSound.replayAsync();
+        return;
+      } catch (replayErr) {
+        console.warn('[SoundService] replayAsync note, resetting sound:', replayErr);
+        try {
+          await cachedSound.unloadAsync();
+        } catch (_) {}
+        cachedSound = null;
+      }
+    }
+
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../../assets/sounds/chaching.wav'),
+        { shouldPlay: true, volume: 1.0 }
+      );
+      cachedSound = sound;
+    } catch (createErr) {
+      console.warn('[SoundService] Audio.Sound.createAsync note:', createErr);
+    }
   } catch (err) {
     console.warn('[SoundService] Failed to play cha-ching sound:', err);
   }

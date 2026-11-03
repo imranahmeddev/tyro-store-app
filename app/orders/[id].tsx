@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -87,6 +87,13 @@ export default function OrderDetailsScreen() {
     },
     enabled: !!activeStore && !!id,
   });
+
+  // If this record is an Abandoned Cart, redirect to specialized Abandoned Cart screen
+  useEffect(() => {
+    if (order?.is_abandoned) {
+      router.replace(`/orders/abandoned/${order.id}` as any);
+    }
+  }, [order?.is_abandoned, order?.id]);
 
   // 2. Status Mutation with Instant Cache Invalidation
   const updateStatusMutation = useMutation({

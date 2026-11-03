@@ -32,7 +32,7 @@ export default function TabsLayout() {
   const processingCount = Array.isArray(ordersData)
     ? ordersData.filter((o: any) => {
         const s = String(o.status || '').toLowerCase();
-        return s === 'processing' || s === 'pending';
+        return s === 'processing' || s === 'pending' || (s === 'abandoned' && !o.is_recovered);
       }).length
     : 0;
   const processingBadge = processingCount > 0 ? String(processingCount) : undefined;

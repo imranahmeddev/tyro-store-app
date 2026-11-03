@@ -1,23 +1,16 @@
 import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+import { AppErrorBoundary } from '../src/components/AppErrorBoundary';
 
-// Configure foreground notification presentation
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Prevent native splash screen from hiding prematurely
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,7 +27,24 @@ function RootNavigation() {
   const segments = useSegments();
   const router = useRouter();
 
-  // Initialize FCM Push Notifications for active store profile
+  // Safely configure foreground notification presentation after mount
+  useEffect(() => {
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+    } catch (e) {
+      console.warn('[RootNavigation] Notifications.setNotificationHandler note:', e);
+    }
+  }, []);
+
+  // Initialize FCM Push Notifications (defensively deferred until isInitialized && activeStoreId)
   usePushNotifications();
 
   useEffect(() => {
@@ -44,6 +54,9 @@ function RootNavigation() {
 
   useEffect(() => {
     if (!isInitialized) return;
+
+    // Hide native splash screen once state is hydrated
+    SplashScreen.hideAsync().catch(() => {});
 
     const isLogin = segments[0] === 'login';
 
@@ -87,9 +100,11 @@ function RootNavigation() {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RootNavigation />
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <RootNavigation />
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }
 

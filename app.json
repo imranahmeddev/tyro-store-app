@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "tyroecomm",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.theimranahmed.tyroecomm",
+      "bundleIdentifier": "com.theimranahmed.tyroecom",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
@@ -27,7 +27,15 @@
       },
       "package": "com.theimranahmed.tyroecom",
       "googleServicesFile": "./google-services.json",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

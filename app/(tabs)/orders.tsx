@@ -12,6 +12,8 @@ import {
   Platform,
   TextInput,
   SectionList,
+  ScrollView,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -26,6 +28,10 @@ import {
   X,
   AlertCircle,
   Package,
+  Phone,
+  MessageCircle,
+  ShoppingBag,
+  ArrowUpRight,
 } from 'lucide-react-native';
 import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
@@ -50,15 +56,23 @@ export interface Order {
   order_number?: string;
   customer_name: string;
   customer_phone?: string;
+  customer_email?: string;
+  shipping_address?: string;
   total_amount: number;
+  subtotal?: number;
   status: string;
+  is_abandoned?: boolean;
+  is_recovered?: boolean;
+  admin_note?: string | null;
+  last_active_at?: string;
   created_at: string;
   channel?: string;
   items?: OrderItem[];
 }
 
 const STATUS_OPTIONS = [
-  { key: 'any', label: 'Any' },
+  { key: 'any', label: 'All' },
+  { key: 'abandoned', label: 'Abandoned' },
   { key: 'pending', label: 'Pending' },
   { key: 'processing', label: 'Processing' },
   { key: 'confirmed', label: 'Confirmed' },
@@ -116,6 +130,21 @@ export default function OrdersScreen() {
     return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   });
 
+  // Fetch Abandoned Checkout stats for live count badge
+  const { data: abandonedStats } = useQuery({
+    queryKey: ['abandoned_stats', activeStore?.id],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/api/v1/abandoned-checkouts', { params: { per_page: 1 } });
+        return res.data?.stats ?? null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!activeStore,
+    refetchInterval: 30000,
+  });
+
   // 1. Fetch Orders from Backend with Status & Search parameters (Zero N+1)
   const {
     data,
@@ -135,7 +164,13 @@ export default function OrdersScreen() {
     ],
     queryFn: async () => {
       const params: Record<string, any> = { per_page: 50 };
-      if (selectedStatus !== 'any') params.status = selectedStatus;
+      if (selectedStatus === 'abandoned') {
+        params.status = 'abandoned';
+      } else if (selectedStatus !== 'any') {
+        params.status = selectedStatus;
+      } else {
+        params.include_abandoned = 1;
+      }
       if (selectedDateRange !== 'any') params.date_range = selectedDateRange;
       if (customerFilter.trim().length > 0) params.customer = customerFilter.trim();
       if (selectedChannel !== 'any') params.sales_channel = selectedChannel;
@@ -208,6 +243,18 @@ export default function OrdersScreen() {
   const getStatusBadgeStyle = (status?: string) => {
     const s = (status || '').toLowerCase();
     switch (s) {
+      case 'abandoned':
+        return {
+          bg: '#fef3c7',
+          text: '#b45309',
+          label: 'Abandoned Cart',
+        };
+      case 'recovered':
+        return {
+          bg: '#dcfce7',
+          text: '#15803d',
+          label: 'Recovered',
+        };
       case 'processing':
         return {
           bg: '#dcfce7',
@@ -291,6 +338,147 @@ export default function OrdersScreen() {
   };
 
   const renderOrderItem = ({ item: order }: { item: Order }) => {
+    // 1. Specialized Abandoned Cart Order Card
+    if (order.is_abandoned || order.status === 'abandoned') {
+      const isRecovered = Boolean(order.is_recovered);
+      const itemsCount = order.items?.length || 0;
+      const firstItemName = order.items?.[0]?.product_name;
+      const previewText = itemsCount > 0
+        ? `${itemsCount} item${itemsCount > 1 ? 's' : ''}${firstItemName ? ` (${firstItemName}${itemsCount > 1 ? '...' : ''})` : ''}`
+        : 'Items in cart';
+
+      const handleCall = () => {
+        if (order.customer_phone) {
+          Linking.openURL(`tel:${order.customer_phone.replace(/[^0-9+]/g, '')}`);
+        }
+      };
+
+      const handleWhatsApp = () => {
+        if (order.customer_phone) {
+          const cleanPhone = order.customer_phone.replace(/[^0-9]/g, '');
+          const storeName = activeStore?.store_name || 'our store';
+          const msg = `Hello ${order.customer_name || 'there'},\n\nWe noticed you left some items in your cart at ${storeName}. Do you need any assistance completing your order?`;
+          const waUrl = `https://wa.me/${cleanPhone.startsWith('88') ? cleanPhone : '88' + cleanPhone}?text=${encodeURIComponent(msg)}`;
+          Linking.openURL(waUrl);
+        }
+      };
+
+      return (
+        <TouchableOpacity
+          style={[
+            styles.abandonedCard,
+            {
+              backgroundColor: colors.isDark ? '#141416' : '#ffffff',
+              borderColor: colors.isDark ? '#27272a' : isRecovered ? '#bbf7d0' : '#fde68a',
+            },
+          ]}
+          onPress={() => router.push(`/orders/abandoned/${order.id}` as any)}
+          activeOpacity={0.7}
+        >
+          {/* Top row: ABN badge and Date */}
+          <View style={styles.abandonedTopRow}>
+            <View
+              style={[
+                styles.abandonedBadge,
+                isRecovered ? styles.recoveredBadgeBg : styles.abandonedBadgeBg,
+              ]}
+            >
+              <ShoppingBag size={12} color={isRecovered ? '#15803d' : '#b45309'} />
+              <Text
+                style={[
+                  styles.abandonedBadgeText,
+                  { color: isRecovered ? '#15803d' : '#b45309' },
+                ]}
+              >
+                {isRecovered ? 'RECOVERED' : 'ABANDONED CART'}
+              </Text>
+            </View>
+
+            <Text style={[styles.orderDateTop, { color: colors.textSecondary }]}>
+              {formatShortDate(order.created_at)}
+            </Text>
+          </View>
+
+          {/* Customer & Amount */}
+          <View style={styles.orderMainRow}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={[styles.orderTitleText, { color: colors.text }]} numberOfLines={1}>
+                {order.customer_name || 'Customer'}
+              </Text>
+              {order.customer_phone ? (
+                <Text style={[styles.customerPhoneSub, { color: colors.textSecondary }]}>
+                  {order.customer_phone}
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={styles.orderAmountWrapper}>
+              <Text
+                style={[
+                  styles.orderAmountText,
+                  { color: isRecovered ? '#16a34a' : '#d97706', fontWeight: '800' },
+                ]}
+              >
+                {Math.round(order.total_amount).toLocaleString('en-IN')}{currencySymbol}
+              </Text>
+              <ChevronRight size={18} color={colors.textSecondary} />
+            </View>
+          </View>
+
+          {/* Items preview */}
+          <Text style={[styles.abandonedPreviewText, { color: colors.textSecondary }]} numberOfLines={1}>
+            🛒 {previewText}
+          </Text>
+
+          {/* Quick Actions Row */}
+          <View style={styles.abandonedActionsRow}>
+            {order.customer_phone ? (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.quickActionBtn,
+                    { backgroundColor: colors.isDark ? '#1e293b' : '#f0fdf4' },
+                  ]}
+                  onPress={handleCall}
+                  activeOpacity={0.7}
+                >
+                  <Phone size={13} color="#16a34a" />
+                  <Text style={[styles.quickActionBtnText, { color: '#16a34a' }]}>Call</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.quickActionBtn,
+                    { backgroundColor: colors.isDark ? '#1e293b' : '#f0fdf4' },
+                  ]}
+                  onPress={handleWhatsApp}
+                  activeOpacity={0.7}
+                >
+                  <MessageCircle size={13} color="#16a34a" />
+                  <Text style={[styles.quickActionBtnText, { color: '#16a34a' }]}>WhatsApp</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+
+            <TouchableOpacity
+              style={[
+                styles.quickActionBtn,
+                { backgroundColor: colors.isDark ? '#2e1065' : '#f5f3ff', marginLeft: 'auto' },
+              ]}
+              onPress={() => router.push(`/orders/abandoned/${order.id}` as any)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.quickActionBtnText, { color: '#8b5cf6', fontWeight: '700' }]}>
+                {isRecovered ? 'Details' : 'Recover'}
+              </Text>
+              <ArrowUpRight size={13} color="#8b5cf6" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    // 2. Standard WooCommerce Order Row
     const badge = getStatusBadgeStyle(order.status);
     const invoiceDisplay = `#${order.invoice_no || order.order_number || order.id}`;
     const customerDisplay = order.customer_name ? ` ${order.customer_name}` : '';
@@ -407,6 +595,78 @@ export default function OrdersScreen() {
             <Text style={styles.filterBtnText}>Filter</Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Horizontal Status Filter Bar (Scrollable chips with live Abandoned badge) */}
+      <View style={styles.filterBarWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterChipsScroll}
+        >
+          {STATUS_OPTIONS.map((opt) => {
+            const isSelected = selectedStatus === opt.key;
+            const isAbandoned = opt.key === 'abandoned';
+            const abandonedCount = abandonedStats?.total_abandoned || 0;
+
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: isSelected
+                      ? '#8b5cf6'
+                      : colors.isDark
+                      ? '#1c1c1e'
+                      : '#ffffff',
+                    borderColor: isSelected
+                      ? '#8b5cf6'
+                      : colors.isDark
+                      ? '#27272a'
+                      : '#e4e4e7',
+                  },
+                ]}
+                onPress={() => setSelectedStatus(opt.key)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    {
+                      color: isSelected
+                        ? '#ffffff'
+                        : isAbandoned
+                        ? '#d97706'
+                        : colors.text,
+                      fontWeight: isSelected ? '700' : '600',
+                    },
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+
+                {isAbandoned && abandonedCount > 0 && (
+                  <View
+                    style={[
+                      styles.chipBadge,
+                      { backgroundColor: isSelected ? '#ffffff' : '#f59e0b' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipBadgeText,
+                        { color: isSelected ? '#8b5cf6' : '#ffffff' },
+                      ]}
+                    >
+                      {abandonedCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* 3. Sectioned Orders List (Grouped by Date) */}
@@ -928,5 +1188,102 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
+  },
+
+  /* Horizontal Status Filter Bar */
+  filterBarWrapper: {
+    paddingVertical: 6,
+  },
+  filterChipsScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 13,
+  },
+  chipBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  /* Abandoned Cart Card Styles */
+  abandonedCard: {
+    marginHorizontal: 16,
+    marginVertical: 6,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  abandonedTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  abandonedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  abandonedBadgeBg: {
+    backgroundColor: '#fef3c7',
+  },
+  recoveredBadgeBg: {
+    backgroundColor: '#dcfce7',
+  },
+  abandonedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  customerPhoneSub: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  abandonedPreviewText: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  abandonedActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e4e4e7',
+  },
+  quickActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  quickActionBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
