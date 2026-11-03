@@ -1,8 +1,8 @@
-import { Platform } from 'react-native';
-import { Audio } from 'expo-av';
+import { Platform, Vibration } from 'react-native';
 
-let cachedSound: Audio.Sound | null = null;
-
+/**
+ * High-fidelity Web Audio synthesis for web previews.
+ */
 function synthesizeChaChingWeb(): void {
   try {
     const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -48,16 +48,17 @@ function synthesizeChaChingWeb(): void {
     gain3.connect(ctx.destination);
     osc3.start(now + 0.06);
     osc3.stop(now + 0.4);
-
-    console.log('[SoundService] Web audio chime synthesized successfully.');
   } catch (err) {
-    console.warn('[SoundService] Web synthesizer note:', err);
+    console.warn('[SoundService] Web audio synthesis note:', err);
   }
 }
 
 /**
- * Play the signature WooCommerce "Cha-ching!" cash register sound.
- * Works seamlessly across iOS, Android, and Web.
+ * Signature "Cha-Ching!" notification and haptic response.
+ *
+ * NOTE: On native Android/iOS, push notification sound 'chaching.wav' is handled
+ * at the OS notification channel level (res/raw/chaching.wav) without needing
+ * deprecated third-party audio modules.
  */
 export async function playChaChingSound(): Promise<void> {
   try {
@@ -84,54 +85,20 @@ export async function playChaChingSound(): Promise<void> {
       }
     }
 
-    // Configure audio mode for immediate playback on physical devices
+    // On native mobile devices: Provide signature haptic cash-register pattern
     try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-      });
-    } catch (modeErr) {
-      console.warn('[SoundService] Audio.setAudioModeAsync note:', modeErr);
-    }
-
-    if (cachedSound) {
-      try {
-        await cachedSound.replayAsync();
-        return;
-      } catch (replayErr) {
-        console.warn('[SoundService] replayAsync note, resetting sound:', replayErr);
-        try {
-          await cachedSound.unloadAsync();
-        } catch (_) {}
-        cachedSound = null;
-      }
-    }
-
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require('../../assets/sounds/chaching.wav'),
-        { shouldPlay: true, volume: 1.0 }
-      );
-      cachedSound = sound;
-    } catch (createErr) {
-      console.warn('[SoundService] Audio.Sound.createAsync note:', createErr);
+      Vibration.vibrate([0, 80, 60, 120]);
+    } catch (vibErr) {
+      console.warn('[SoundService] Haptic feedback note:', vibErr);
     }
   } catch (err) {
-    console.warn('[SoundService] Failed to play cha-ching sound:', err);
+    console.warn('[SoundService] Sound/Haptic notification note:', err);
   }
 }
 
 /**
- * Unload sound from memory when shutting down.
+ * Cleanup / unload hook (no-op now that legacy expo-av is eliminated).
  */
 export async function unloadSound(): Promise<void> {
-  try {
-    if (cachedSound) {
-      await cachedSound.unloadAsync();
-      cachedSound = null;
-    }
-  } catch (err) {
-    console.warn('[SoundService] Error unloading sound:', err);
-  }
+  // No-op
 }

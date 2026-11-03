@@ -31,7 +31,7 @@ Before modifying code, run this **3-Step Context Lock**:
 ## 3. HARD MOBILE ARCHITECTURAL INVARIANTS (NEVER VIOLATE)
 
 ### 3.1 Native & Architecture Invariants (`stack.md` + `plan.md`)
-- **`newArchEnabled` is LOCKED FALSE:** While `expo-av` (`^16.0.8`) is installed, `"newArchEnabled": false` in `app.json` and `newArchEnabled=false` in `android/gradle.properties` **MUST NEVER** be set to `true`. `expo-av` does not support TurboModules and triggers an instant fatal C++ JNI `SIGABRT` crash on Android when New Architecture is enabled.
+- **`newArchEnabled` Aligned with React Native 0.88.1:** `"newArchEnabled": true` in `app.json` and `newArchEnabled=true` in `android/gradle.properties` to support `ExpoReactHostFactory` and TurboModules. Legacy `expo-av` is completely uninstalled.
 - **Never Execute Native Modules at Root Module Scope:** Never call `Notifications.setNotificationHandler()`, `Audio.setAudioModeAsync()`, or native permissions at top-level JavaScript execution. Always execute them inside React component lifecycles (`useEffect`) wrapped in `try / catch`.
 - **Root Error Boundary Mandatory:** `<RootNavigation />` in `app/_layout.tsx` must always be wrapped in `<AppErrorBoundary>` to prevent silent native process crashes.
 - **Package ID Consistency:** The Android package and iOS bundle identifier must both strictly match `"com.theimranahmed.tyroecom"` (matching `google-services.json`).
