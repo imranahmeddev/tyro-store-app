@@ -8,26 +8,22 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Alert,
-  Switch,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
-  ArrowLeft,
+  ChevronLeft,
   Moon,
   Sun,
   Smartphone,
-  BellRing,
   Volume2,
   RefreshCw,
   DownloadCloud,
   CheckCircle2,
-  AlertCircle,
   Shield,
   Store,
   LogOut,
-  ChevronRight,
   Sparkles,
   Zap,
 } from 'lucide-react-native';
@@ -41,16 +37,7 @@ interface UpdateCheckResponse {
   latest_version: string;
   has_update: boolean;
   download_url?: string | null;
-  changelog?: string[] | string | null;
   message?: string;
-}
-
-interface UpdateRunResponse {
-  success: boolean;
-  old_version?: string;
-  new_version?: string;
-  message: string;
-  logs?: string[];
 }
 
 export default function HubSettingsScreen() {
@@ -69,7 +56,6 @@ export default function HubSettingsScreen() {
     data: updateData,
     isLoading: isCheckingUpdate,
     refetch: checkForUpdates,
-    error: updateCheckError,
   } = useQuery<UpdateCheckResponse>({
     queryKey: ['system_update_check', activeStore?.id],
     queryFn: async () => {
@@ -77,34 +63,26 @@ export default function HubSettingsScreen() {
       return response.data;
     },
     enabled: !!activeStore && isSuperAdmin,
-    staleTime: 1000 * 60 * 5, // 5 min
+    staleTime: 1000 * 60 * 5,
   });
 
   // 2. Run Update Mutation
-  const runUpdateMutation = useMutation<UpdateRunResponse, any, { download_url?: string | null }>({
-    mutationFn: async ({ download_url }) => {
-      setUpdateStatus('Deploying zero-downtime update pipeline...');
+  const runUpdateMutation = useMutation({
+    mutationFn: async ({ download_url }: { download_url?: string | null }) => {
+      setUpdateStatus('Deploying update pipeline...');
       const response = await apiClient.post('/api/v1/update/run', { download_url });
       return response.data;
     },
-    onSuccess: (res) => {
+    onSuccess: (res: any) => {
       setUpdateStatus(null);
       const msg = res.message || `System updated successfully to v${res.new_version || 'latest'}!`;
-      if (Platform.OS === 'web') {
-        alert(msg);
-      } else {
-        Alert.alert('Update Completed', msg);
-      }
+      Alert.alert('Update Completed', msg);
       checkForUpdates();
     },
     onError: (err: any) => {
       setUpdateStatus(null);
-      const msg = err?.response?.data?.message || 'Update failed to execute.';
-      if (Platform.OS === 'web') {
-        alert(`Update Failed: ${msg}`);
-      } else {
-        Alert.alert('Update Failed', String(msg));
-      }
+      const msg = err?.response?.data?.message || 'Update failed.';
+      Alert.alert('Update Failed', String(msg));
     },
   });
 
@@ -119,123 +97,85 @@ export default function HubSettingsScreen() {
 
   const handleTriggerUpdate = () => {
     if (!updateData?.has_update) {
-      Alert.alert('System Current', 'Your backend is already running the newest available release.');
-      return;
-    }
-
-    const run = () => {
-      runUpdateMutation.mutate({ download_url: updateData.download_url });
-    };
-
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Start zero-downtime update to v${updateData.latest_version}?`)) {
-        run();
-      }
+      Alert.alert('System Current', 'Your backend is already running the newest release.');
       return;
     }
 
     Alert.alert(
       'Confirm Update',
-      `Execute zero-downtime update to v${updateData.latest_version}? The updater protects your .env, databases, and media folders.`,
+      `Execute zero-downtime update to v${updateData.latest_version}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Update Now', style: 'default', onPress: run },
+        {
+          text: 'Update Now',
+          style: 'default',
+          onPress: () => runUpdateMutation.mutate({ download_url: updateData.download_url }),
+        },
       ]
     );
   };
 
-  const themeOptions: { key: ThemeMode; label: string; desc: string; icon: any }[] = [
-    {
-      key: 'system',
-      label: 'System Match',
-      desc: 'Follows iOS / Android appearance',
-      icon: Smartphone,
-    },
-    {
-      key: 'light',
-      label: 'Clean Light',
-      desc: 'Crisp high-contrast day theme',
-      icon: Sun,
-    },
-    {
-      key: 'dark',
-      label: 'OLED Pure Black',
-      desc: 'Deep #000000 black for AMOLED battery saving',
-      icon: Moon,
-    },
-  ];
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      {/* Top Header */}
-      <View style={[styles.screenHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: colors.subtle }]}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(tabs)/dashboard');
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <ArrowLeft size={20} color={colors.text} />
-          </TouchableOpacity>
-          <View>
-            <Text style={[styles.screenTitle, { color: colors.text }]}>Settings & System</Text>
-            <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
-              Theme engine, sounds & updater
-            </Text>
-          </View>
-        </View>
+      {/* Slim Top Bar */}
+      <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: colors.subtle }]}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <ChevronLeft size={18} color={colors.text} />
+        </TouchableOpacity>
+
+        <Text style={[styles.screenTitle, { color: colors.text }]}>Settings</Text>
+        <View style={{ width: 30 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        {/* Section 1: Appearance & OLED Dark Mode */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconBox, { backgroundColor: colors.primarySubtle }]}>
-              <Moon size={18} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Appearance & Theme</Text>
-              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                OLED Pure Black (#000000) saves battery
-              </Text>
-            </View>
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Section 1: Appearance */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardHeaderTitle, { color: colors.textSecondary }]}>
+            APPEARANCE & DISPLAY
+          </Text>
 
-          <View style={styles.themeOptionsGrid}>
-            {themeOptions.map((opt) => {
+          <View style={[styles.segmentContainer, { backgroundColor: colors.subtle }]}>
+            {(
+              [
+                { key: 'system', label: 'System', icon: Smartphone },
+                { key: 'light', label: 'Light', icon: Sun },
+                { key: 'dark', label: 'OLED Black', icon: Moon },
+              ] as const
+            ).map((opt) => {
               const isSelected = currentThemeMode === opt.key;
               const IconComp = opt.icon;
               return (
                 <TouchableOpacity
                   key={opt.key}
                   style={[
-                    styles.themeOptionCard,
-                    { backgroundColor: colors.subtle, borderColor: colors.border },
-                    isSelected && { borderColor: colors.primary, borderWidth: 2 },
+                    styles.segmentBtn,
+                    isSelected && {
+                      backgroundColor: colors.surface,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 2,
+                      elevation: 2,
+                    },
                   ]}
                   onPress={() => setThemeMode(opt.key)}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.themeOptionHeader}>
-                    <IconComp
-                      size={20}
-                      color={isSelected ? colors.primary : colors.textSecondary}
-                    />
-                    {isSelected ? (
-                      <CheckCircle2 size={16} color={colors.primary} />
-                    ) : null}
-                  </View>
-                  <Text style={[styles.themeOptionTitle, { color: colors.text }]}>
+                  <IconComp size={13} color={isSelected ? '#7c3aed' : colors.textSecondary} />
+                  <Text
+                    style={[
+                      styles.segmentBtnText,
+                      {
+                        color: isSelected ? (colors.isDark ? '#c4b5fd' : '#6d28d9') : colors.textSecondary,
+                        fontWeight: isSelected ? '700' : '500',
+                      },
+                    ]}
+                  >
                     {opt.label}
-                  </Text>
-                  <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
-                    {opt.desc}
                   </Text>
                 </TouchableOpacity>
               );
@@ -243,193 +183,141 @@ export default function HubSettingsScreen() {
           </View>
         </View>
 
-        {/* Section 2: Native Audio & "Cha-ching!" Sound */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconBox, { backgroundColor: colors.warningBg }]}>
-              <BellRing size={18} color={colors.warning} />
-            </View>
-            <View>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Order Alerts & Audio</Text>
-              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                Signature cash register "Cha-ching!" chime
-              </Text>
-            </View>
-          </View>
+        {/* Section 2: Audio & Alerts */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardHeaderTitle, { color: colors.textSecondary }]}>
+            ORDER ALERTS & SOUND
+          </Text>
 
-          <View style={[styles.soundBanner, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
-            <View style={styles.soundBannerLeft}>
-              <Volume2 size={20} color={colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.soundBannerTitle, { color: colors.text }]}>
-                  Cash Register Chime
-                </Text>
-                <Text style={[styles.soundBannerDesc, { color: colors.textSecondary }]}>
-                  Plays automatically when a new customer order arrives
-                </Text>
-              </View>
+          <View style={styles.soundRow}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={[styles.settingRowTitle, { color: colors.text }]}>
+                "Cha-ching!" Cash Register Chime
+              </Text>
+              <Text style={[styles.settingRowSub, { color: colors.textSecondary }]}>
+                Plays automatically when a new order arrives
+              </Text>
             </View>
 
             <TouchableOpacity
               style={[
                 styles.testSoundBtn,
-                { backgroundColor: colors.primary },
-                soundPlaying && { opacity: 0.7 },
+                { backgroundColor: colors.isDark ? '#312e81' : '#ede9fe' },
+                soundPlaying && { opacity: 0.6 },
               ]}
               onPress={handleTestSound}
               disabled={soundPlaying}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
-              <Zap size={14} color="#ffffff" />
-              <Text style={styles.testSoundBtnText}>
-                {soundPlaying ? 'Playing...' : 'Test Sound'}
-              </Text>
+              <Volume2 size={13} color="#7c3aed" />
+              <Text style={styles.testSoundText}>{soundPlaying ? 'Playing' : 'Test Sound'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Section 3: Self-Hosted Auto-Updater */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconBox, { backgroundColor: colors.successBg }]}>
-              <RefreshCw size={18} color={colors.success} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>Self-Hosted Auto-Updater</Text>
-                <View style={[styles.versionPill, { backgroundColor: colors.subtle }]}>
-                  <Text style={[styles.versionPillText, { color: colors.primary }]}>
-                    v{updateData?.current_version || '1.0.0'}
-                  </Text>
-                </View>
-              </View>
-              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                Zero-downtime, zero-data-loss system pipeline
+        {/* Section 3: Self-Hosted Auto Updater */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.updaterHeaderRow}>
+            <Text style={[styles.cardHeaderTitle, { color: colors.textSecondary }]}>
+              SYSTEM UPDATES
+            </Text>
+            <View style={[styles.versionPill, { backgroundColor: colors.subtle }]}>
+              <Text style={[styles.versionText, { color: '#7c3aed' }]}>
+                v{updateData?.current_version || '1.0.0'}
               </Text>
             </View>
           </View>
 
           {isSuperAdmin ? (
-            <View>
-              {/* Updater Status Card */}
+            <View style={{ gap: 8 }}>
               {updateStatus ? (
-                <View style={[styles.updaterStatusBox, { backgroundColor: colors.primarySubtle }]}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={[styles.updaterStatusText, { color: colors.primary }]}>
-                    {updateStatus}
-                  </Text>
+                <View style={[styles.statusBox, { backgroundColor: colors.subtle }]}>
+                  <ActivityIndicator size="small" color="#7c3aed" />
+                  <Text style={[styles.statusText, { color: '#7c3aed' }]}>{updateStatus}</Text>
                 </View>
               ) : updateData?.has_update ? (
-                <View style={[styles.updateAvailableBox, { backgroundColor: colors.warningBg, borderColor: colors.warning }]}>
-                  <Sparkles size={18} color={colors.warning} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.updateAvailableTitle, { color: colors.text }]}>
-                      New Release Available: v{updateData.latest_version}
-                    </Text>
-                    <Text style={[styles.updateAvailableDesc, { color: colors.textSecondary }]}>
-                      {updateData.message || 'Performance optimizations and database integrity patches.'}
-                    </Text>
-                  </View>
+                <View style={[styles.statusBox, { backgroundColor: '#fef3c7', borderColor: '#fde68a', borderWidth: 1 }]}>
+                  <Sparkles size={14} color="#b45309" />
+                  <Text style={[styles.statusText, { color: '#b45309' }]}>
+                    New release v{updateData.latest_version} available
+                  </Text>
                 </View>
               ) : (
-                <View style={[styles.upToDateBox, { backgroundColor: colors.subtle }]}>
-                  <CheckCircle2 size={16} color={colors.success} />
-                  <Text style={[styles.upToDateText, { color: colors.textSecondary }]}>
-                    Your store is running the latest production build.
+                <View style={[styles.statusBox, { backgroundColor: colors.subtle }]}>
+                  <CheckCircle2 size={14} color="#16a34a" />
+                  <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+                    Store backend is up to date
                   </Text>
                 </View>
               )}
 
-              {/* Actions */}
-              <View style={styles.updaterActionsRow}>
+              <View style={styles.updaterBtnsRow}>
                 <TouchableOpacity
-                  style={[styles.checkUpdateBtn, { backgroundColor: colors.subtle, borderColor: colors.border }]}
+                  style={[styles.checkBtn, { backgroundColor: colors.subtle }]}
                   onPress={() => checkForUpdates()}
                   disabled={isCheckingUpdate}
                   activeOpacity={0.7}
                 >
-                  {isCheckingUpdate ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <>
-                      <RefreshCw size={14} color={colors.text} />
-                      <Text style={[styles.checkUpdateBtnText, { color: colors.text }]}>
-                        Check for Updates
-                      </Text>
-                    </>
-                  )}
+                  <RefreshCw size={13} color={colors.text} />
+                  <Text style={[styles.checkBtnText, { color: colors.text }]}>Check Update</Text>
                 </TouchableOpacity>
 
                 {updateData?.has_update ? (
                   <TouchableOpacity
-                    style={[styles.runUpdateBtn, { backgroundColor: colors.primary }]}
+                    style={styles.updateNowBtn}
                     onPress={handleTriggerUpdate}
                     disabled={runUpdateMutation.isPending}
-                    activeOpacity={0.85}
+                    activeOpacity={0.8}
                   >
-                    {runUpdateMutation.isPending ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
-                    ) : (
-                      <>
-                        <DownloadCloud size={16} color="#ffffff" />
-                        <Text style={styles.runUpdateBtnText}>
-                          Update to v{updateData.latest_version}
-                        </Text>
-                      </>
-                    )}
+                    <DownloadCloud size={13} color="#ffffff" />
+                    <Text style={styles.updateNowText}>Update to v{updateData.latest_version}</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
             </View>
           ) : (
-            <View style={[styles.restrictedBox, { backgroundColor: colors.subtle }]}>
-              <Shield size={16} color={colors.textSecondary} />
-              <Text style={[styles.restrictedText, { color: colors.textSecondary }]}>
-                Only Super Administrators can execute core system auto-updates.
-              </Text>
-            </View>
+            <Text style={[styles.settingRowSub, { color: colors.textSecondary }]}>
+              Only Super Administrators can manage updates.
+            </Text>
           )}
         </View>
 
-        {/* Section 4: Store & Session Info */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconBox, { backgroundColor: colors.primarySubtle }]}>
-              <Store size={18} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Connected Store</Text>
-              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-                {activeStore?.store_name}
-              </Text>
-            </View>
+        {/* Section 4: Store & Session */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardHeaderTitle, { color: colors.textSecondary }]}>
+            CONNECTED STORE
+          </Text>
+
+          <View style={styles.storeDetailLine}>
+            <Text style={[styles.storeLabel, { color: colors.textSecondary }]}>Store Name</Text>
+            <Text style={[styles.storeValue, { color: colors.text }]}>{activeStore?.store_name}</Text>
           </View>
 
-          <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Endpoint</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={1}>
+          <View style={styles.storeDetailLine}>
+            <Text style={[styles.storeLabel, { color: colors.textSecondary }]}>Endpoint</Text>
+            <Text style={[styles.storeValue, { color: colors.text }]} numberOfLines={1}>
               {activeStore?.store_url}
             </Text>
           </View>
 
-          <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Active User</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>
-              {activeStore?.user_info?.name} ({activeStore?.user_info?.role})
+          <View style={styles.storeDetailLine}>
+            <Text style={[styles.storeLabel, { color: colors.textSecondary }]}>User</Text>
+            <Text style={[styles.storeValue, { color: colors.text }]}>
+              {activeStore?.user_info?.name} ({activeStore?.user_info?.role || 'Admin'})
             </Text>
           </View>
 
           <TouchableOpacity
-            style={[styles.logoutBtn, { borderColor: colors.danger, backgroundColor: colors.dangerBg }]}
+            style={[styles.logoutBtn, { backgroundColor: colors.isDark ? '#450a0a' : '#fee2e2' }]}
             onPress={() => logout()}
             activeOpacity={0.7}
           >
-            <LogOut size={16} color={colors.danger} />
-            <Text style={[styles.logoutBtnText, { color: colors.danger }]}>
-              Disconnect & Sign Out
-            </Text>
+            <LogOut size={14} color="#dc2626" />
+            <Text style={styles.logoutBtnText}>Sign Out & Disconnect</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={{ height: 30 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -439,244 +327,169 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  screenHeader: {
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 40 : 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
+  topBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
+    width: 30,
+    height: 30,
+    borderRadius: 7,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   screenTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  screenSubtitle: {
-    fontSize: 12,
-    marginTop: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 14,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  cardIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
-  cardSubtitle: {
-    fontSize: 12,
+  scrollContent: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 24,
+    gap: 8,
+  },
+  sectionCard: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 10,
+    gap: 6,
+  },
+  cardHeaderTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    padding: 2.5,
     marginTop: 2,
   },
-  themeOptionsGrid: {
-    gap: 10,
-  },
-  themeOptionCard: {
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-  },
-  themeOptionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  themeOptionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  themeOptionDesc: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  soundBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  soundBannerLeft: {
+  segmentBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  soundBannerTitle: {
-    fontSize: 13,
+  segmentBtnText: {
+    fontSize: 11,
+  },
+  soundRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  settingRowTitle: {
+    fontSize: 12.5,
     fontWeight: '600',
   },
-  soundBannerDesc: {
-    fontSize: 11,
-    marginTop: 2,
+  settingRowSub: {
+    fontSize: 10.5,
+    marginTop: 1,
   },
   testSoundBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5.5,
+    borderRadius: 6,
   },
-  testSoundBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  versionPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  versionPillText: {
+  testSoundText: {
     fontSize: 11,
     fontWeight: '700',
+    color: '#7c3aed',
   },
-  updaterStatusBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  updaterStatusText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  updateAvailableBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  updateAvailableTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  updateAvailableDesc: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  upToDateBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  upToDateText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  updaterActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  checkUpdateBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  checkUpdateBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  runUpdateBtn: {
-    flex: 1.2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  runUpdateBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  restrictedBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
-  },
-  restrictedText: {
-    fontSize: 12,
-  },
-  infoRow: {
+  updaterHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
   },
-  infoLabel: {
-    fontSize: 12,
+  versionPill: {
+    paddingHorizontal: 6.5,
+    paddingVertical: 1.5,
+    borderRadius: 6,
   },
-  infoValue: {
-    fontSize: 12,
+  versionText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  statusBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  statusText: {
+    fontSize: 11,
     fontWeight: '600',
-    maxWidth: '65%',
+  },
+  updaterBtnsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  checkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5.5,
+    borderRadius: 6,
+  },
+  checkBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  updateNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 9,
+    paddingVertical: 5.5,
+    borderRadius: 6,
+  },
+  updateNowText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  storeDetailLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 3,
+  },
+  storeLabel: {
+    fontSize: 11.5,
+  },
+  storeValue: {
+    fontSize: 11.5,
+    fontWeight: '600',
   },
   logoutBtn: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginTop: 14,
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    borderRadius: 7,
+    marginTop: 4,
   },
   logoutBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#dc2626',
   },
 });
-

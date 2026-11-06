@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -15,12 +14,11 @@ import {
   Users,
   Package,
   ShoppingCart,
-  RefreshCw,
-  ChevronRight,
-  ShieldCheck,
-  Store,
-  Sparkles,
+  TrendingUp,
   Settings,
+  ChevronRight,
+  Store,
+  ExternalLink,
 } from 'lucide-react-native';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
@@ -32,27 +30,27 @@ export default function HubMenuScreen() {
 
   const hubItems = [
     {
-      id: 'coupons',
-      title: 'Coupons & Promotions',
-      subtitle: 'Create promo codes, manage percentage & fixed discounts',
-      icon: Tag,
-      color: '#0284c7',
-      bg: colors.isDark ? '#082f49' : '#e0f2fe',
-      route: '/hub/coupons',
+      id: 'pos',
+      title: 'POS / New Order',
+      subtitle: 'Manual terminal order creation',
+      icon: ShoppingCart,
+      color: '#ea580c',
+      bg: colors.isDark ? '#431407' : '#ffedd5',
+      route: '/orders/create',
     },
     {
-      id: 'reviews',
-      title: 'Review Moderation',
-      subtitle: 'Moderate customer ratings, approve reviews & post replies',
-      icon: Star,
-      color: '#f59e0b',
-      bg: colors.isDark ? '#451a03' : '#fef3c7',
-      route: '/hub/reviews',
+      id: 'analytics',
+      title: 'Store Analytics',
+      subtitle: 'Full revenue & sales breakdown',
+      icon: TrendingUp,
+      color: '#7c3aed',
+      bg: colors.isDark ? '#2e1065' : '#ede9fe',
+      route: '/analytics',
     },
     {
       id: 'customers',
-      title: 'Customer CRM & Directory',
-      subtitle: 'Customer profiles, lifetime value (LTV), AOV & order books',
+      title: 'Customer Directory',
+      subtitle: 'Customer profiles & contact list',
       icon: Users,
       color: '#16a34a',
       bg: colors.isDark ? '#052e16' : '#dcfce7',
@@ -60,95 +58,89 @@ export default function HubMenuScreen() {
     },
     {
       id: 'products',
-      title: 'Product Catalog Engine',
-      subtitle: 'Create products, variable matrix, media & stock counts',
+      title: 'Product Catalog',
+      subtitle: 'Items, pricing, stock levels',
       icon: Package,
-      color: '#9333ea',
-      bg: colors.isDark ? '#3b0764' : '#f3e8ff',
+      color: '#0284c7',
+      bg: colors.isDark ? '#082f49' : '#e0f2fe',
       route: '/(tabs)/products',
     },
     {
-      id: 'pos',
-      title: 'POS / Create Order',
-      subtitle: 'Manual terminal order creation with instant catalog search',
-      icon: ShoppingCart,
-      color: '#ea580c',
-      bg: colors.isDark ? '#431407' : '#ffedd5',
-      route: '/orders/create',
+      id: 'coupons',
+      title: 'Coupons & Promo',
+      subtitle: 'Discount promo codes',
+      icon: Tag,
+      color: '#0891b2',
+      bg: colors.isDark ? '#164e63' : '#cffafe',
+      route: '/hub/coupons',
+    },
+    {
+      id: 'reviews',
+      title: 'Customer Reviews',
+      subtitle: 'Moderate product ratings',
+      icon: Star,
+      color: '#d97706',
+      bg: colors.isDark ? '#451a03' : '#fef3c7',
+      route: '/hub/reviews',
     },
     {
       id: 'settings',
-      title: 'Settings & System Updater',
-      subtitle: 'OLED Pure Black theme, audio alerts & self-hosted updater',
+      title: 'Settings & Alerts',
+      subtitle: 'OLED theme, sound, notifications',
       icon: Settings,
-      color: '#0284c7',
-      bg: colors.isDark ? '#1e293b' : '#f1f5f9',
+      color: '#475569',
+      bg: colors.isDark ? '#27272a' : '#f1f5f9',
       route: '/hub/settings',
     },
   ];
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      {/* Top Header */}
-      <View style={[styles.screenHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View>
+      {/* Slim Top Bar */}
+      <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={styles.headerLeft}>
           <Text style={[styles.screenTitle, { color: colors.text }]}>Commerce Hub</Text>
           <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
-            {activeStore?.store_name || 'Store Management Suite'}
+            {activeStore?.store_name || 'Store Operations'}
           </Text>
         </View>
+
         <TouchableOpacity
-          style={[styles.badgeStore, { backgroundColor: colors.subtle, borderColor: colors.border }]}
+          style={[styles.settingsBtn, { backgroundColor: colors.subtle }]}
           onPress={() => router.push('/hub/settings')}
           activeOpacity={0.7}
         >
-          <Settings size={14} color={colors.primary} />
-          <Text style={[styles.badgeStoreText, { color: colors.primary }]}>Settings</Text>
+          <Settings size={15} color={colors.text} />
+          <Text style={[styles.settingsBtnText, { color: colors.text }]}>Settings</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        {/* Banner */}
-        <View style={[styles.banner, { backgroundColor: colors.primarySubtle, borderColor: colors.primaryBorder }]}>
-          <View style={[styles.bannerIconBox, { backgroundColor: colors.surface }]}>
-            <Sparkles size={20} color={colors.primary} />
-          </View>
-          <View style={styles.bannerInfo}>
-            <Text style={[styles.bannerTitle, { color: colors.primary }]}>Advanced Merchant Tools</Text>
-            <Text style={[styles.bannerSubtitle, { color: colors.textSecondary }]}>
-              Streamline discounts, moderate social proof, and engage loyal customers.
-            </Text>
-          </View>
-        </View>
-
-        {/* Menu Cards */}
-        <View style={styles.menuList}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.menuGrid}>
           {hubItems.map((item) => {
             const IconComponent = item.icon;
             return (
               <TouchableOpacity
                 key={item.id}
-                style={[styles.menuItem, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[
+                  styles.menuCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}
                 onPress={() => router.push(item.route as any)}
                 activeOpacity={0.7}
               >
-                <View
-                  style={[
-                    styles.menuIconBox,
-                    { backgroundColor: item.bg },
-                  ]}
-                >
-                  <IconComponent size={22} color={item.color} />
+                <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
+                  <IconComponent size={18} color={item.color} />
                 </View>
 
-                <View style={styles.menuInfo}>
-                  <Text style={[styles.menuItemTitle, { color: colors.text }]}>{item.title}</Text>
-                  <Text style={[styles.menuItemSubtitle, { color: colors.textSecondary }]} numberOfLines={2}>
+                <View style={styles.cardInfo}>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
+                  <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
                     {item.subtitle}
                   </Text>
                 </View>
 
-                <ChevronRight size={18} color={colors.textMuted} />
+                <ChevronRight size={15} color={colors.textMuted} />
               </TouchableOpacity>
             );
           })}
@@ -162,102 +154,71 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  screenHeader: {
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 40 : 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
+  topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+  },
+  headerLeft: {
+    flex: 1,
   },
   screenTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   screenSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 10.5,
+    marginTop: 0.5,
   },
-  badgeStore: {
+  settingsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 7,
   },
-  badgeStoreText: {
-    fontSize: 12,
+  settingsBtnText: {
+    fontSize: 11,
     fontWeight: '600',
   },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 40,
+  scrollContent: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
-  banner: {
+  menuGrid: {
+    gap: 7,
+  },
+  menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-  },
-  bannerIconBox: {
-    width: 40,
-    height: 40,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerInfo: {
-    flex: 1,
-  },
-  bannerTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  bannerSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  menuList: {
-    gap: 10,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    padding: 14,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
+    padding: 9.5,
   },
-  menuIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
-  menuInfo: {
+  cardInfo: {
     flex: 1,
-    marginRight: 8,
+    marginRight: 6,
   },
-  menuItemTitle: {
-    fontSize: 15,
+  cardTitle: {
+    fontSize: 13,
     fontWeight: '700',
   },
-  menuItemSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
+  cardSubtitle: {
+    fontSize: 10.5,
+    marginTop: 1,
   },
 });

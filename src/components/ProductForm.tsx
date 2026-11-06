@@ -37,6 +37,7 @@ import {
 import BarcodeScanner from './BarcodeScanner';
 import apiClient from '../api/client';
 import { useAuthStore } from '../store/authStore';
+import { useThemeStore } from '../store/themeStore';
 
 export interface ProductAttribute {
   id: string;
@@ -73,6 +74,7 @@ export default function ProductForm({ initialData, isEditing = false, productId 
   const router = useRouter();
   const queryClient = useQueryClient();
   const activeStore = useAuthStore((s) => s.getActiveStore());
+  const colors = useThemeStore((s) => s.colors);
   const currencySymbol = activeStore?.currency || '৳';
 
   const [activeTab, setActiveTab] = useState<TabType>('general');
@@ -412,12 +414,12 @@ export default function ProductForm({ initialData, isEditing = false, productId 
   });
 
   return (
-    <View style={styles.formContainer}>
+    <View style={[styles.formContainer, { backgroundColor: colors.background }]}>
       {/* Top Tabs Segment */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.tabsScroll}
+        style={[styles.tabsScroll, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
         contentContainerStyle={styles.tabsContent}
       >
         {(
@@ -947,10 +949,11 @@ export default function ProductForm({ initialData, isEditing = false, productId 
       </ScrollView>
 
       {/* Sticky Bottom Save Button */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <TouchableOpacity
           style={[
             styles.saveButton,
+            { backgroundColor: '#7c3aed' },
             saveProductMutation.isPending && styles.saveButtonDisabled,
           ]}
           onPress={() => saveProductMutation.mutate()}

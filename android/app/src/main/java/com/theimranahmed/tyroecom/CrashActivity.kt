@@ -129,3 +129,4 @@ class CrashActivity : Activity() {
     setContentView(rootLayout)
   }
 }
+

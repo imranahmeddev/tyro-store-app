@@ -39,6 +39,7 @@ import {
 import BarcodeScanner from '../../src/components/BarcodeScanner';
 import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 
 interface SelectedItem {
   product_id: number;
@@ -62,6 +63,7 @@ export default function CreateOrderScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const activeStore = useAuthStore((s) => s.getActiveStore());
+  const colors = useThemeStore((s) => s.colors);
   const currencySymbol = activeStore?.currency || '৳';
 
   // Customer State
@@ -242,22 +244,22 @@ export default function CreateOrderScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* Top Header */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.subtle }]}
           onPress={() => {
             if (router.canGoBack()) router.back();
             else router.replace('/(tabs)/orders');
           }}
           activeOpacity={0.7}
         >
-          <ChevronLeft size={24} color="#0f172a" />
+          <ChevronLeft size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.topBarTitle}>
-          <Text style={styles.headerTitle}>New Order / POS</Text>
-          <Text style={styles.headerSubtitle}>{activeStore?.store_name || 'Store'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>New Order / POS</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{activeStore?.store_name || 'Store'}</Text>
         </View>
       </View>
 

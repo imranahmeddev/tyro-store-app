@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform, View, StyleSheet } from 'react-native';
-import { BarChart2, FileText, Package, LayoutGrid } from 'lucide-react-native';
+import { LayoutDashboard, ShoppingBag, Package, Grid } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
@@ -11,7 +11,7 @@ export default function TabsLayout() {
   const colors = useThemeStore((s) => s.colors);
   const activeStore = useAuthStore((s) => s.getActiveStore());
 
-  // Fetch real order count for live WooCommerce badge (Matches live connected store)
+  // Real-time pending & processing count for the Orders tab badge
   const { data: ordersData } = useQuery({
     queryKey: ['wc_orders_badge', activeStore?.id],
     queryFn: async () => {
@@ -29,100 +29,109 @@ export default function TabsLayout() {
     refetchInterval: 30000,
   });
 
-  const processingCount = Array.isArray(ordersData)
+  const pendingCount = Array.isArray(ordersData)
     ? ordersData.filter((o: any) => {
         const s = String(o.status || '').toLowerCase();
         return s === 'processing' || s === 'pending' || (s === 'abandoned' && !o.is_recovered);
       }).length
     : 0;
-  const processingBadge = processingCount > 0 ? String(processingCount) : undefined;
+
+  const ordersBadge = pendingCount > 0 ? (pendingCount > 99 ? '99+' : String(pendingCount)) : undefined;
+
+  const activeTintColor = colors.isDark ? '#a78bfa' : '#6d28d9';
+  const inactiveTintColor = colors.isDark ? '#71717a' : '#94a3b8';
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#c084fc', // WooCommerce Active Purple
-        tabBarInactiveTintColor: '#9ca3af',
+        tabBarActiveTintColor: activeTintColor,
+        tabBarInactiveTintColor: inactiveTintColor,
         tabBarStyle: {
-          backgroundColor: colors.isDark ? '#18181b' : '#ffffff',
-          borderTopColor: colors.isDark ? '#27272a' : '#e4e4e7',
+          backgroundColor: colors.isDark ? '#09090b' : '#ffffff',
+          borderTopColor: colors.isDark ? '#27272a' : '#f1f5f9',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 26 : 8,
-          paddingTop: 8,
+          height: Platform.OS === 'ios' ? 84 : 58,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 6,
+          paddingTop: 6,
+          elevation: 8,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: colors.isDark ? 0.3 : 0.05,
+          shadowRadius: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: '600',
-          marginTop: 2,
+          marginTop: 1,
         },
       }}
     >
-      {/* 1. My store (bar chart icon) */}
+      {/* 1. Dashboard Tab */}
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'My store',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconWrapper, focused && styles.activePill]}>
-              <BarChart2 size={22} color={focused ? '#c084fc' : color} />
+          title: 'Store',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrapper, focused && { backgroundColor: colors.isDark ? 'rgba(167, 139, 250, 0.18)' : 'rgba(109, 40, 217, 0.1)' }]}>
+              <LayoutDashboard size={20} color={focused ? activeTintColor : color} strokeWidth={focused ? 2.4 : 1.9} />
             </View>
           ),
         }}
       />
 
-      {/* 2. Orders (receipt/document icon with purple badge) */}
+      {/* 2. Orders Tab */}
       <Tabs.Screen
         name="orders"
         options={{
           title: 'Orders',
-          tabBarBadge: processingBadge,
+          tabBarBadge: ordersBadge,
           tabBarBadgeStyle: {
-            backgroundColor: '#8b5cf6',
+            backgroundColor: '#7c3aed',
             color: '#ffffff',
-            fontSize: 10,
+            fontSize: 9.5,
             fontWeight: '700',
-            minWidth: 18,
-            height: 18,
-            borderRadius: 9,
-            lineHeight: 18,
+            minWidth: 16,
+            height: 16,
+            borderRadius: 8,
+            lineHeight: 16,
             top: Platform.OS === 'ios' ? -2 : 0,
           },
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconWrapper, focused && styles.activePill]}>
-              <FileText size={22} color={focused ? '#c084fc' : color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrapper, focused && { backgroundColor: colors.isDark ? 'rgba(167, 139, 250, 0.18)' : 'rgba(109, 40, 217, 0.1)' }]}>
+              <ShoppingBag size={20} color={focused ? activeTintColor : color} strokeWidth={focused ? 2.4 : 1.9} />
             </View>
           ),
         }}
       />
 
-      {/* 3. Products (package/box icon) */}
+      {/* 3. Products Tab */}
       <Tabs.Screen
         name="products"
         options={{
           title: 'Products',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconWrapper, focused && styles.activePill]}>
-              <Package size={22} color={focused ? '#c084fc' : color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrapper, focused && { backgroundColor: colors.isDark ? 'rgba(167, 139, 250, 0.18)' : 'rgba(109, 40, 217, 0.1)' }]}>
+              <Package size={20} color={focused ? activeTintColor : color} strokeWidth={focused ? 2.4 : 1.9} />
             </View>
           ),
         }}
       />
 
-      {/* 4. Menu (4-dots/grid icon) */}
+      {/* 4. Menu / Hub Tab */}
       <Tabs.Screen
         name="menu"
         options={{
-          title: 'Menu',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconWrapper, focused && styles.activePill]}>
-              <LayoutGrid size={22} color={focused ? '#c084fc' : color} />
+          title: 'Hub',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrapper, focused && { backgroundColor: colors.isDark ? 'rgba(167, 139, 250, 0.18)' : 'rgba(109, 40, 217, 0.1)' }]}>
+              <Grid size={20} color={focused ? activeTintColor : color} strokeWidth={focused ? 2.4 : 1.9} />
             </View>
           ),
         }}
       />
 
-      {/* Hidden Customers Screen (Preserves route) */}
+      {/* Hidden Customers Tab */}
       <Tabs.Screen
         name="customers"
         options={{
@@ -138,11 +147,8 @@ const styles = StyleSheet.create({
   iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
-    height: 28,
-    borderRadius: 14,
-  },
-  activePill: {
-    backgroundColor: 'rgba(139, 92, 246, 0.22)', // WooCommerce Signature Translucent Purple Pill
+    width: 38,
+    height: 26,
+    borderRadius: 13,
   },
 });

@@ -9,26 +9,22 @@ import {
   ActivityIndicator,
   SafeAreaView,
   TextInput,
-  Linking,
-  Platform,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import {
   Users,
   Search,
-  Phone,
-  Mail,
-  Calendar,
-  ShoppingBag,
-  CreditCard,
-  AlertCircle,
-  PhoneCall,
-  UserCheck,
+  RefreshCw,
+  X,
   ChevronRight,
+  ShoppingBag,
 } from 'lucide-react-native';
 import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
+import CurrencyText from '../../src/components/ui/CurrencyText';
+import QuickActionButton from '../../src/components/ui/QuickActionButton';
 
 export interface Customer {
   id: number;
@@ -43,21 +39,22 @@ export interface Customer {
 export default function CustomersScreen() {
   const router = useRouter();
   const activeStore = useAuthStore((s) => s.getActiveStore());
+  const colors = useThemeStore((s) => s.colors);
   const currencySymbol = activeStore?.currency || '৳';
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
   // 1. Fetch Customers
   const {
     data,
     isLoading,
     isRefetching,
-    error,
     refetch,
   } = useQuery({
     queryKey: ['customers', activeStore?.id, searchQuery],
     queryFn: async () => {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = { per_page: '50' };
       if (searchQuery.trim()) {
         params.search = searchQuery.trim();
       }
@@ -69,23 +66,6 @@ export default function CustomersScreen() {
 
   const customers: Customer[] = Array.isArray(data) ? data : data?.data ?? [];
 
-  const handleCallCustomer = (phone?: string | null) => {
-    if (!phone) return;
-    const cleanNumber = phone.replace(/[^0-9+]/g, '');
-    if (cleanNumber) {
-      Linking.openURL(`tel:${cleanNumber}`).catch((err) =>
-        console.error('[Customers] Could not launch phone dialer:', err)
-      );
-    }
-  };
-
-  const handleEmailCustomer = (email?: string | null) => {
-    if (!email) return;
-    Linking.openURL(`mailto:${email.trim()}`).catch((err) =>
-      console.error('[Customers] Could not launch mail client:', err)
-    );
-  };
-
   const getInitials = (name?: string): string => {
     if (!name || !name.trim()) return 'C';
     const parts = name.trim().split(/\s+/);
@@ -93,183 +73,140 @@ export default function CustomersScreen() {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   };
 
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const renderCustomerItem = ({ item: customer }: { item: Customer }) => {
-    const initials = getInitials(customer.name);
-    const totalOrders = customer.total_orders ?? 0;
-    const totalSpent = customer.total_spent ?? 0;
-
+  const renderCustomerItem = ({ item }: { item: Customer }) => {
     return (
       <TouchableOpacity
-        style={styles.card}
-        onPress={() => router.push(`/customers/${customer.id}` as any)}
-        activeOpacity={0.8}
+        style={[styles.customerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => router.push(`/customers/${item.id}` as any)}
+        activeOpacity={0.7}
       >
-        {/* Card Header: Avatar, Name & Quick Call */}
-        <View style={styles.cardHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.avatarLeftGroup}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+            </View>
 
-          <View style={styles.nameSection}>
-            <Text style={styles.customerName} numberOfLines={1}>
-              {customer.name || 'Unnamed Customer'}
-            </Text>
-            <View style={styles.joinedRow}>
-              <Calendar size={11} color="#94a3b8" />
-              <Text style={styles.joinedText}>Joined {formatDate(customer.created_at)}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.customerName, { color: colors.text }]} numberOfLines={1}>
+                {item.name || 'Unnamed Customer'}
+              </Text>
+              {item.phone ? (
+                <Text style={[styles.customerPhone, { color: colors.textSecondary }]}>
+                  {item.phone}
+                </Text>
+              ) : null}
             </View>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {customer.phone ? (
-              <TouchableOpacity
-                style={styles.callActionButton}
-                onPress={() => handleCallCustomer(customer.phone)}
-                activeOpacity={0.7}
-              >
-                <PhoneCall size={16} color="#0284c7" />
-              </TouchableOpacity>
-            ) : null}
-            <ChevronRight size={18} color="#cbd5e1" />
-          </View>
-        </View>
-
-        {/* Contact Information */}
-        <View style={styles.contactSection}>
-          {customer.phone ? (
-            <TouchableOpacity
-              style={styles.contactRow}
-              onPress={() => handleCallCustomer(customer.phone)}
-              activeOpacity={0.7}
-            >
-              <Phone size={14} color="#64748b" />
-              <Text style={styles.contactTextPhone}>{customer.phone}</Text>
-            </TouchableOpacity>
-          ) : null}
-
-          {customer.email ? (
-            <TouchableOpacity
-              style={styles.contactRow}
-              onPress={() => handleEmailCustomer(customer.email)}
-              activeOpacity={0.7}
-            >
-              <Mail size={14} color="#64748b" />
-              <Text style={styles.contactText} numberOfLines={1}>
-                {customer.email}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Lifetime Stats Footer */}
-        <View style={styles.statsFooter}>
-          {/* Total Orders */}
-          <View style={styles.statBox}>
-            <ShoppingBag size={14} color="#0284c7" />
-            <Text style={styles.statLabel}>Orders:</Text>
-            <Text style={styles.statValue}>{totalOrders}</Text>
-          </View>
-
-          {/* Total Spent */}
-          <View style={styles.statBox}>
-            <CreditCard size={14} color="#16a34a" />
-            <Text style={styles.statLabel}>Spent:</Text>
-            <Text style={styles.statValue}>
-              {currencySymbol}{' '}
-              {totalSpent.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+          <View style={styles.metricsCol}>
+            <CurrencyText
+              amount={item.total_spent ?? 0}
+              currencySymbol={currencySymbol}
+              size="sm"
+              color={colors.text}
+              weight="700"
+            />
+            <Text style={[styles.ordersCountText, { color: colors.textSecondary }]}>
+              {item.total_orders ?? 0} orders
             </Text>
           </View>
         </View>
+
+        {/* Quick Contact Line */}
+        {item.phone ? (
+          <View style={styles.actionsLine}>
+            <QuickActionButton type="call" phone={item.phone} />
+            <QuickActionButton
+              type="whatsapp"
+              phone={item.phone}
+              message={`Hello ${item.name || ''}, greetings from ${activeStore?.store_name || 'our store'}!`}
+            />
+            <QuickActionButton type="copy" textToCopy={item.phone} label="Copy" />
+          </View>
+        ) : null}
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.screenHeader}>
-        <Text style={styles.screenTitle}>Customers</Text>
-        <Text style={styles.screenSubtitle}>
-          {customers.length} {customers.length === 1 ? 'customer' : 'customers'} found
-        </Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      {/* 1. Slim Top Bar */}
+      <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={styles.titleWithCount}>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>Customers</Text>
+          <View style={[styles.countPill, { backgroundColor: colors.isDark ? '#312e81' : '#ede9fe' }]}>
+            <Text style={[styles.countPillText, { color: colors.isDark ? '#c4b5fd' : '#6d28d9' }]}>
+              {customers.length}
+            </Text>
+          </View>
+        </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchWrapper}>
-          <Search size={18} color="#94a3b8" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by customer name, phone, or email..."
-            placeholderTextColor="#94a3b8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            clearButtonMode="while-editing"
-          />
+        <View style={styles.topBarActions}>
+          <TouchableOpacity
+            style={[styles.iconButton, { backgroundColor: colors.subtle }]}
+            onPress={() => setIsSearchActive((prev) => !prev)}
+            activeOpacity={0.7}
+          >
+            <Search size={15} color={isSearchActive ? '#7c3aed' : colors.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.iconButton, { backgroundColor: colors.subtle }]}
+            onPress={() => refetch()}
+            activeOpacity={0.7}
+          >
+            <RefreshCw size={15} color={isRefetching ? '#7c3aed' : colors.text} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Loading State */}
-      {isLoading && (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#0284c7" />
-          <Text style={styles.loadingText}>Loading customers...</Text>
+      {/* Search Input */}
+      {isSearchActive && (
+        <View style={[styles.searchBarBox, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Search size={14} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search customer name or phone..."
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+              <X size={14} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
-      {/* Error State */}
-      {error && (
+      {/* Customer List */}
+      {isLoading ? (
         <View style={styles.centerContainer}>
-          <AlertCircle size={36} color="#ef4444" />
-          <Text style={styles.errorTitle}>Failed to load customers</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
+          <ActivityIndicator size="small" color="#7c3aed" />
         </View>
-      )}
-
-      {/* Customers List */}
-      {!isLoading && !error && (
+      ) : (
         <FlatList
           data={customers}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderCustomerItem}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={() => {
                 refetch();
               }}
-              tintColor="#0284c7"
-              colors={['#0284c7']}
+              tintColor="#7c3aed"
+              colors={['#7c3aed']}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <UserCheck size={44} color="#cbd5e1" />
-              <Text style={styles.emptyTitle}>No Customers Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {searchQuery.trim()
-                  ? `No profiles matching "${searchQuery}".`
-                  : 'Your customer list will populate as buyers make purchases.'}
+              <Users size={32} color={colors.textMuted} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                No customers found.
               </Text>
             </View>
           }
@@ -282,196 +219,133 @@ export default function CustomersScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    paddingTop: Platform.OS === 'android' ? 24 : 0,
   },
-  screenHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  screenTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  screenSubtitle: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 2,
-    marginBottom: 12,
-  },
-  searchWrapper: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 10,
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
-    height: 42,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
   },
-  searchIcon: {
-    marginRight: 8,
+  titleWithCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  screenTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  countPill: {
+    paddingHorizontal: 6.5,
+    paddingVertical: 1.5,
+    borderRadius: 8,
+  },
+  countPillText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  topBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBarBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    gap: 6,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    color: '#0f172a',
+    height: 32,
+    fontSize: 12.5,
+    padding: 0,
   },
   listContent: {
-    padding: 16,
-    gap: 12,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 20,
+    gap: 7,
   },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+  customerCard: {
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    padding: 9.5,
+    gap: 5,
   },
-  cardHeader: {
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#e0f2fe',
+  avatarLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
+    marginRight: 8,
+  },
+  avatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#7c3aed',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
+    fontSize: 11.5,
     fontWeight: '700',
-    color: '#0369a1',
-  },
-  nameSection: {
-    flex: 1,
+    color: '#ffffff',
   },
   customerName: {
-    fontSize: 15,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#0f172a',
   },
-  joinedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  joinedText: {
+  customerPhone: {
     fontSize: 11,
-    color: '#94a3b8',
+    marginTop: 0.5,
   },
-  callActionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#f0f9ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#bae6fd',
+  metricsCol: {
+    alignItems: 'flex-end',
+    gap: 1,
   },
-  contactSection: {
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    gap: 6,
+  ordersCountText: {
+    fontSize: 10.5,
   },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  contactText: {
-    fontSize: 13,
-    color: '#475569',
-  },
-  contactTextPhone: {
-    fontSize: 13,
-    color: '#0284c7',
-    fontWeight: '600',
-  },
-  statsFooter: {
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statBox: {
+  actionsLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  statValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
+    marginTop: 2,
+    paddingTop: 5,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(150, 150, 150, 0.15)',
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#64748b',
-  },
-  errorTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#dc2626',
-    marginTop: 10,
-    marginBottom: 12,
-  },
-  retryButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#0284c7',
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
+    justifyContent: 'center',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 24,
+    paddingVertical: 40,
+    gap: 6,
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#475569',
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginTop: 4,
+  emptyText: {
+    fontSize: 12,
   },
 });

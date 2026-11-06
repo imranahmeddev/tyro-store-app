@@ -9,17 +9,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  Image,
 } from 'react-native';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { Store, Mail, Lock, ShieldCheck, AlertCircle } from 'lucide-react-native';
+import { Store, Mail, Lock, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react-native';
 import { useAuthStore } from '../src/store/authStore';
+import { useThemeStore } from '../src/store/themeStore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const addStore = useAuthStore((s) => s.addStore);
+  const colors = useThemeStore((s) => s.colors);
 
   const [storeUrl, setStoreUrl] = useState('');
   const [email, setEmail] = useState('');
@@ -27,7 +29,6 @@ export default function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Hidden/Auto-detected Device Name
   const deviceName =
     Constants.deviceName ||
     `${Platform.OS.toUpperCase()}-${Platform.Version || 'Device'}`;
@@ -44,15 +45,15 @@ export default function LoginScreen() {
     setErrorMessage(null);
 
     if (!storeUrl.trim()) {
-      setErrorMessage('Store URL is required.');
+      setErrorMessage('Please enter your Store URL.');
       return;
     }
     if (!email.trim()) {
-      setErrorMessage('Email address is required.');
+      setErrorMessage('Please enter your email.');
       return;
     }
     if (!password) {
-      setErrorMessage('Password is required.');
+      setErrorMessage('Please enter your password.');
       return;
     }
 
@@ -79,7 +80,7 @@ export default function LoginScreen() {
 
       const { access_token, user } = tokenResponse.data;
 
-      // 2. Fetch Store Metadata (Currency, Store Name, Logo)
+      // 2. Fetch Store Metadata
       let storeName = 'Tyro Store';
       let currency = '৳';
       let logo: string | null = null;
@@ -95,9 +96,7 @@ export default function LoginScreen() {
           currency = infoResponse.data.currency || currency;
           logo = infoResponse.data.logo || null;
         }
-      } catch (infoErr) {
-        console.warn('[Login] Failed to load store info, using defaults.', infoErr);
-      }
+      } catch {}
 
       // 3. Persist into multi-store Zustand auth store + SecureStore
       await addStore({
@@ -112,8 +111,7 @@ export default function LoginScreen() {
       // 4. Navigate to main tab dashboard
       router.replace('/(tabs)/dashboard');
     } catch (err: any) {
-      console.error('[Login] Authentication error:', err);
-      let message = 'Connection failed. Please check the Store URL and your network.';
+      let message = 'Connection failed. Please check the Store URL and credentials.';
       if (err.response?.data?.message) {
         message = err.response.data.message;
       } else if (err.message) {
@@ -127,36 +125,43 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardContainer}
+      style={[styles.keyboardContainer, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Branding Header */}
         <View style={styles.header}>
-          <View style={styles.iconCircle}>
-            <Store size={36} color="#0284c7" />
+          <View style={styles.iconBadge}>
+            <Store size={26} color="#ffffff" />
           </View>
-          <Text style={styles.headerTitle}>Connect Your Store</Text>
-          <Text style={styles.headerSubtitle}>
-            Manage orders, inventory, and analytics in real time.
+          <Text style={[styles.brandTitle, { color: colors.text }]}>Tyro eComm</Text>
+          <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>
+            Store Management Companion
           </Text>
         </View>
 
+        {/* Error Alert */}
         {errorMessage && (
-          <View style={styles.errorBox}>
-            <AlertCircle size={20} color="#b91c1c" />
+          <View style={[styles.errorBox, { backgroundColor: colors.isDark ? '#450a0a' : '#fee2e2' }]}>
+            <AlertCircle size={15} color="#dc2626" />
             <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         )}
 
-        <View style={styles.form}>
+        {/* Input Form */}
+        <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Store URL */}
-          <Text style={styles.label}>Store URL</Text>
-          <View style={styles.inputWrapper}>
-            <Store size={20} color="#64748b" style={styles.inputIcon} />
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>STORE URL</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
+            <Store size={15} color={colors.textSecondary} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
-              placeholder="e.g. ghorerbzer.com or https://yourstore.com"
-              placeholderTextColor="#94a3b8"
+              style={[styles.input, { color: colors.text }]}
+              placeholder="e.g. aamzo.com"
+              placeholderTextColor={colors.textMuted}
               value={storeUrl}
               onChangeText={setStoreUrl}
               autoCapitalize="none"
@@ -167,13 +172,13 @@ export default function LoginScreen() {
           </View>
 
           {/* Email */}
-          <Text style={styles.label}>Staff / Admin Email</Text>
-          <View style={styles.inputWrapper}>
-            <Mail size={20} color="#64748b" style={styles.inputIcon} />
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>EMAIL ADDRESS</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
+            <Mail size={15} color={colors.textSecondary} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text }]}
               placeholder="admin@example.com"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -184,13 +189,13 @@ export default function LoginScreen() {
           </View>
 
           {/* Password */}
-          <Text style={styles.label}>Password</Text>
-          <View style={styles.inputWrapper}>
-            <Lock size={20} color="#64748b" style={styles.inputIcon} />
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>PASSWORD</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
+            <Lock size={15} color={colors.textSecondary} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text }]}
               placeholder="••••••••••••"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -199,25 +204,28 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Hidden/Device Info Badge */}
-          <View style={styles.deviceBadge}>
-            <ShieldCheck size={16} color="#0284c7" />
-            <Text style={styles.deviceBadgeText}>
-              Device Identification: {deviceName}
+          {/* Device verification badge */}
+          <View style={[styles.deviceBadge, { backgroundColor: colors.subtle }]}>
+            <ShieldCheck size={13} color="#7c3aed" />
+            <Text style={[styles.deviceText, { color: colors.textSecondary }]}>
+              Secure Terminal: {deviceName}
             </Text>
           </View>
 
-          {/* Submit Button */}
+          {/* Connect Button */}
           <TouchableOpacity
-            style={[styles.button, isSubmitting && styles.buttonDisabled]}
+            style={[styles.loginBtn, isSubmitting && { opacity: 0.7 }]}
             onPress={handleLogin}
             disabled={isSubmitting}
             activeOpacity={0.8}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              <Text style={styles.buttonText}>Connect & Log In</Text>
+              <>
+                <Text style={styles.loginBtnText}>Connect Store</Text>
+                <ArrowRight size={14} color="#ffffff" />
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -229,116 +237,100 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 36,
+    paddingHorizontal: 16,
+    paddingVertical: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
   },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#e0f2fe',
+  iconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#7c3aed',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0f172a',
     marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    paddingHorizontal: 16,
+  brandTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  brandSubtitle: {
+    fontSize: 11.5,
+    marginTop: 2,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    padding: 12,
+    gap: 6,
+    padding: 8,
     borderRadius: 8,
-    marginBottom: 20,
-    gap: 8,
+    marginBottom: 10,
   },
   errorText: {
+    fontSize: 11.5,
+    color: '#dc2626',
     flex: 1,
-    fontSize: 13,
-    color: '#b91c1c',
   },
-  form: {
-    width: '100%',
+  formCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    gap: 7,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    marginTop: 2,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    backgroundColor: '#f8fafc',
-    marginBottom: 18,
-    paddingHorizontal: 12,
+    borderRadius: 8,
+    paddingHorizontal: 8,
   },
   inputIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
   input: {
     flex: 1,
-    height: 48,
-    fontSize: 15,
-    color: '#0f172a',
+    height: 38,
+    fontSize: 12.5,
+    padding: 0,
   },
   deviceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f9ff',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    gap: 5,
+    padding: 6,
     borderRadius: 6,
-    marginBottom: 24,
-    gap: 6,
+    marginTop: 4,
   },
-  deviceBadgeText: {
-    fontSize: 12,
-    color: '#0369a1',
-    fontWeight: '500',
+  deviceText: {
+    fontSize: 10.5,
   },
-  button: {
-    backgroundColor: '#0284c7',
-    height: 50,
-    borderRadius: 10,
+  loginBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
+    gap: 6,
+    backgroundColor: '#7c3aed',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 6,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
+  loginBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react-native';
 import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 
 interface CustomerDetail {
   id: number | string;
@@ -80,6 +81,7 @@ export default function CustomerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const activeStore = useAuthStore((s) => s.getActiveStore());
+  const colors = useThemeStore((s) => s.colors);
   const currencySymbol = activeStore?.currency || '৳';
 
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -124,11 +126,14 @@ export default function CustomerDetailScreen() {
 
   const handleWhatsApp = (phone?: string | null) => {
     if (!phone) return;
-    const cleanNumber = phone.replace(/[^0-9]/g, '');
+    let cleanNumber = phone.replace(/[^0-9]/g, '');
+    if (!cleanNumber.startsWith('88') && cleanNumber.length === 11) {
+      cleanNumber = '88' + cleanNumber;
+    }
     if (cleanNumber) {
-      const url = `whatsapp://send?phone=${cleanNumber}`;
+      const url = `https://wa.me/${cleanNumber}`;
       Linking.openURL(url).catch(() =>
-        Alert.alert('Error', 'WhatsApp is not installed on this device.')
+        Alert.alert('Error', 'Unable to open WhatsApp.')
       );
     }
   };
@@ -496,23 +501,23 @@ export default function CustomerDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* Top Header */}
-      <View style={styles.screenHeader}>
+      <View style={[styles.screenHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.subtle }]}
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color="#0f172a" />
+          <ArrowLeft size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleBox}>
-          <Text style={styles.screenTitle} numberOfLines={1}>
+          <Text style={[styles.screenTitle, { color: colors.text }]} numberOfLines={1}>
             {customer.name}
           </Text>
-          <Text style={styles.screenSubtitle}>Customer CRM Details</Text>
+          <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>Customer Profile</Text>
         </View>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 32 }} />
       </View>
 
       <FlatList
