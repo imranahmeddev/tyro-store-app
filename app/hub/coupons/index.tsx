@@ -7,11 +7,11 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   TextInput,
   Alert,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
@@ -318,7 +318,7 @@ export default function CouponsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
       {/* Top Header */}
       <View style={styles.screenHeader}>
         <View style={styles.headerTitleRow}>

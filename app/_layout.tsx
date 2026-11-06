@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
@@ -97,9 +98,11 @@ function RootNavigation() {
 export default function RootLayout() {
   return (
     <AppErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <RootNavigation />
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <RootNavigation />
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </AppErrorBoundary>
   );
 }

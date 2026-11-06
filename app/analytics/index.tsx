@@ -6,12 +6,12 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   Image,
   Modal,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -270,7 +270,7 @@ export default function AnalyticsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
       {/* 1. Top Header Bar (Screenshot 1: Circle Back Button, Centered Analytics, Edit Pill) */}
       <View style={[styles.headerBar, { backgroundColor: colors.isDark ? '#000000' : '#ffffff' }]}>
         <TouchableOpacity

@@ -8,10 +8,10 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  SafeAreaView,
   Platform,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -113,7 +113,7 @@ export default function OrderEditScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
+      <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#8b5cf6" />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading order...</Text>
@@ -123,7 +123,7 @@ export default function OrderEditScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
       {/* 1. Header Bar (Screenshot: Cancel pill left, Order # center) */}
       <View style={[styles.headerBar, { backgroundColor: colors.isDark ? '#000000' : '#ffffff' }]}>
         <TouchableOpacity

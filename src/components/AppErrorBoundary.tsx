@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Props {
   children: ReactNode;
@@ -40,7 +41,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.card}>
               <Text style={styles.badge}>CRASH RECOVERY</Text>

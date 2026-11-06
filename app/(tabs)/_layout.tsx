@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform, View, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LayoutDashboard, ShoppingBag, Package, Grid } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../src/api/client';
@@ -8,6 +9,7 @@ import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   const colors = useThemeStore((s) => s.colors);
   const activeStore = useAuthStore((s) => s.getActiveStore());
 
@@ -51,9 +53,9 @@ export default function TabsLayout() {
           backgroundColor: colors.isDark ? '#09090b' : '#ffffff',
           borderTopColor: colors.isDark ? '#27272a' : '#f1f5f9',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 84 : 58,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 6,
-          paddingTop: 6,
+          height: 52 + Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 8),
+          paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 6),
+          paddingTop: 5,
           elevation: 8,
           shadowColor: '#000000',
           shadowOffset: { width: 0, height: -2 },

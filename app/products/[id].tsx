@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, AlertCircle } from 'lucide-react-native';
@@ -38,7 +38,7 @@ export default function EditProductScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#0284c7" />
           <Text style={styles.loadingText}>Loading product details...</Text>
@@ -49,7 +49,7 @@ export default function EditProductScreen() {
 
   if (error || !product) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
         <View style={styles.centerContainer}>
           <AlertCircle size={40} color="#dc2626" />
           <Text style={styles.errorTitle}>Product Not Found</Text>
@@ -62,7 +62,7 @@ export default function EditProductScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backButton}

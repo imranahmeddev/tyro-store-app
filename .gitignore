@@ -16,6 +16,8 @@ keystore.properties
 *.mobileprovision
 
 # Native Build Artifacts & Android Caches
+*.apk
+build-output/
 android/.gradle/
 android/app/build/
 android/build/

@@ -10,11 +10,14 @@ import {
   Platform,
   ScrollView,
   Image,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { Store, Mail, Lock, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react-native';
+import { Store, Mail, Lock, ShieldCheck, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 
@@ -26,6 +29,7 @@ export default function LoginScreen() {
   const [storeUrl, setStoreUrl] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -124,117 +128,138 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.keyboardContainer, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* Branding Header */}
-        <View style={styles.header}>
-          <View style={styles.iconBadge}>
-            <Store size={26} color="#ffffff" />
-          </View>
-          <Text style={[styles.brandTitle, { color: colors.text }]}>Tyro eComm</Text>
-          <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>
-            Store Management Companion
-          </Text>
-        </View>
-
-        {/* Error Alert */}
-        {errorMessage && (
-          <View style={[styles.errorBox, { backgroundColor: colors.isDark ? '#450a0a' : '#fee2e2' }]}>
-            <AlertCircle size={15} color="#dc2626" />
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        )}
-
-        {/* Input Form */}
-        <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* Store URL */}
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>STORE URL</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
-            <Store size={15} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="e.g. aamzo.com"
-              placeholderTextColor={colors.textMuted}
-              value={storeUrl}
-              onChangeText={setStoreUrl}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              editable={!isSubmitting}
-            />
-          </View>
-
-          {/* Email */}
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>EMAIL ADDRESS</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
-            <Mail size={15} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="admin@example.com"
-              placeholderTextColor={colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              editable={!isSubmitting}
-            />
-          </View>
-
-          {/* Password */}
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>PASSWORD</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
-            <Lock size={15} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="••••••••••••"
-              placeholderTextColor={colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!isSubmitting}
-            />
-          </View>
-
-          {/* Device verification badge */}
-          <View style={[styles.deviceBadge, { backgroundColor: colors.subtle }]}>
-            <ShieldCheck size={13} color="#7c3aed" />
-            <Text style={[styles.deviceText, { color: colors.textSecondary }]}>
-              Secure Terminal: {deviceName}
-            </Text>
-          </View>
-
-          {/* Connect Button */}
-          <TouchableOpacity
-            style={[styles.loginBtn, isSubmitting && { opacity: 0.7 }]}
-            onPress={handleLogin}
-            disabled={isSubmitting}
-            activeOpacity={0.8}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
           >
-            {isSubmitting ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <>
-                <Text style={styles.loginBtnText}>Connect Store</Text>
-                <ArrowRight size={14} color="#ffffff" />
-              </>
+            {/* Branding Header */}
+            <View style={styles.header}>
+              <View style={styles.iconBadge}>
+                <Store size={26} color="#ffffff" />
+              </View>
+              <Text style={[styles.brandTitle, { color: colors.text }]}>Tyro eComm</Text>
+              <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>
+                Store Management Companion
+              </Text>
+            </View>
+
+            {/* Error Alert */}
+            {errorMessage && (
+              <View style={[styles.errorBox, { backgroundColor: colors.isDark ? '#450a0a' : '#fee2e2' }]}>
+                <AlertCircle size={15} color="#dc2626" />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
             )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+            {/* Input Form */}
+            <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {/* Store URL */}
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>STORE URL</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
+                <Store size={15} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="e.g. mystore.com"
+                  placeholderTextColor={colors.textMuted}
+                  value={storeUrl}
+                  onChangeText={setStoreUrl}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  editable={!isSubmitting}
+                />
+              </View>
+
+              {/* Email */}
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>EMAIL ADDRESS</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
+                <Mail size={15} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="admin@example.com"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  editable={!isSubmitting}
+                />
+              </View>
+
+              {/* Password */}
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>PASSWORD</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.subtle, borderColor: colors.border }]}>
+                <Lock size={15} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.text, paddingRight: 32 }]}
+                  placeholder="••••••••••••"
+                  placeholderTextColor={colors.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!isSubmitting}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  style={styles.eyeBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff size={16} color={colors.textSecondary} />
+                  ) : (
+                    <Eye size={16} color={colors.textSecondary} />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Device verification badge */}
+              <View style={[styles.deviceBadge, { backgroundColor: colors.subtle }]}>
+                <ShieldCheck size={13} color="#7c3aed" />
+                <Text style={[styles.deviceText, { color: colors.textSecondary }]}>
+                  Secure Terminal: {deviceName}
+                </Text>
+              </View>
+
+              {/* Connect Button */}
+              <TouchableOpacity
+                style={[styles.loginBtn, isSubmitting && { opacity: 0.7 }]}
+                onPress={handleLogin}
+                disabled={isSubmitting}
+                activeOpacity={0.8}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.loginBtnText}>Connect Store</Text>
+                    <ArrowRight size={14} color="#ffffff" />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   keyboardContainer: {
     flex: 1,
   },
@@ -242,7 +267,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingTop: 16,
+    paddingBottom: 60,
   },
   header: {
     alignItems: 'center',
@@ -306,6 +332,12 @@ const styles = StyleSheet.create({
     height: 38,
     fontSize: 12.5,
     padding: 0,
+  },
+  eyeBtn: {
+    padding: 6,
+    marginRight: -2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   deviceBadge: {
     flexDirection: 'row',

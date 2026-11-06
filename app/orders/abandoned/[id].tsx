@@ -8,12 +8,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  SafeAreaView,
   Linking,
   Platform,
   Alert,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -234,7 +234,7 @@ export default function AbandonedCheckoutDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
+      <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#8b5cf6" />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading cart details...</Text>
@@ -245,7 +245,7 @@ export default function AbandonedCheckoutDetailScreen() {
 
   if (error || !checkout) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
+      <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
         <View style={styles.centerContainer}>
           <AlertTriangle size={40} color="#ef4444" />
           <Text style={[styles.errorTitle, { color: colors.text }]}>Record Not Found</Text>
@@ -260,7 +260,7 @@ export default function AbandonedCheckoutDetailScreen() {
   const itemsList = checkout.items || [];
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.isDark ? '#000000' : '#f4f4f5' }]}>
       {/* Top Header */}
       <View style={[styles.topHeader, { backgroundColor: colors.isDark ? '#000000' : '#ffffff', borderBottomColor: colors.isDark ? '#27272a' : '#e4e4e7' }]}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()} activeOpacity={0.7}>

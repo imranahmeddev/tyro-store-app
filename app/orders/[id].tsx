@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  SafeAreaView,
   Platform,
   Alert,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -157,7 +157,7 @@ export default function OrderDetailsScreen() {
 
   if (isLoading || !order) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="small" color="#7c3aed" />
         </View>
@@ -169,7 +169,7 @@ export default function OrderDetailsScreen() {
   const items = Array.isArray(order.items) ? order.items : [];
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* 1. Header Bar */}
       <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
