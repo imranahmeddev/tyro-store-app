@@ -310,9 +310,19 @@ export default function OrderDetailsScreen() {
 
         {/* 4. Ordered Items */}
         <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardHeaderTitle, { color: colors.textSecondary }]}>
-            ORDERED ITEMS ({items.length})
-          </Text>
+          <View style={styles.itemsHeaderRow}>
+            <Text style={[styles.cardHeaderTitle, { color: colors.textSecondary, marginBottom: 0 }]}>
+              ORDERED ITEMS ({items.length})
+            </Text>
+            <TouchableOpacity
+              style={styles.itemsCustomizeBtn}
+              onPress={() => router.push(`/orders/edit?id=${order.id}` as any)}
+              activeOpacity={0.7}
+            >
+              <Edit2 size={12} color="#7c3aed" />
+              <Text style={styles.itemsCustomizeText}>Change / Customize</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.itemsList}>
             {items.map((item: any, idx: number) => {
@@ -513,6 +523,26 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  itemsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  itemsCustomizeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+  },
+  itemsCustomizeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7c3aed',
   },
   customerRow: {
     marginTop: 1,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyro eComm",
     "slug": "tyro-ecomm-admin",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "tyroecomm",
@@ -49,7 +49,8 @@
           "icon": "./assets/icon.png",
           "color": "#0284c7",
           "sounds": [
-            "./assets/sounds/chaching.wav"
+            "./assets/sounds/chaching.mp3",
+            "./assets/sounds/woo_commerce_order.mp3"
           ]
         }
       ]

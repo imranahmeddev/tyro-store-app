@@ -75,7 +75,16 @@ export function usePushNotifications(): PushNotificationState {
               name: 'New Order Alerts',
               importance: Notifications.AndroidImportance.MAX,
               vibrationPattern: [0, 250, 250, 250],
-              lightColor: '#0284c7',
+              lightColor: '#7c3aed',
+              sound: 'chaching',
+              enableLights: true,
+              enableVibrate: true,
+            });
+            await Notifications.setNotificationChannelAsync('order-alerts-v2', {
+              name: 'Order Alerts (WooCommerce Chime)',
+              importance: Notifications.AndroidImportance.MAX,
+              vibrationPattern: [0, 250, 250, 250],
+              lightColor: '#7c3aed',
               sound: 'chaching',
               enableLights: true,
               enableVibrate: true,

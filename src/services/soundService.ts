@@ -64,11 +64,11 @@ export async function playChaChingSound(): Promise<void> {
   try {
     if (Platform.OS === 'web') {
       try {
-        const soundAsset = require('../../assets/sounds/chaching.wav');
+        const soundAsset = require('../../assets/sounds/chaching.mp3');
         const audioUri =
           typeof soundAsset === 'string'
             ? soundAsset
-            : soundAsset?.default || soundAsset?.uri || '/assets/sounds/chaching.wav';
+            : soundAsset?.default || soundAsset?.uri || '/assets/sounds/chaching.mp3';
 
         const audio = new (window as any).Audio(audioUri);
         audio.volume = 1.0;
@@ -85,7 +85,22 @@ export async function playChaChingSound(): Promise<void> {
       }
     }
 
-    // On native mobile devices: Provide signature haptic cash-register pattern
+    // On native mobile devices: Schedule immediate local alert with custom WooCommerce order chime
+    try {
+      const Notifications = await import('expo-notifications');
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '🛍️ Order Notification Alert',
+          body: 'New order received!',
+          sound: 'chaching',
+        },
+        trigger: null,
+      });
+    } catch (notifErr) {
+      console.warn('[SoundService] Notification alert note:', notifErr);
+    }
+
+    // Provide signature haptic cash-register pattern
     try {
       Vibration.vibrate([0, 80, 60, 120]);
     } catch (vibErr) {
