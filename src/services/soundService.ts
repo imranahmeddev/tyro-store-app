@@ -92,9 +92,12 @@ export async function playChaChingSound(): Promise<void> {
         content: {
           title: '🛍️ Order Notification Alert',
           body: 'New order received!',
-          sound: 'chaching',
+          sound: 'woo_commerce_order',
         },
-        trigger: null,
+        trigger: {
+          type: 'channel',
+          channelId: 'woocommerce-order-alerts',
+        } as any,
       });
     } catch (notifErr) {
       console.warn('[SoundService] Notification alert note:', notifErr);

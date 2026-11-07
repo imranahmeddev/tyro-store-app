@@ -68,32 +68,40 @@ export function usePushNotifications(): PushNotificationState {
           console.warn('[PushNotifications] setNotificationHandler note:', handlerErr);
         }
 
-        // Step 3: Configure Android Notification Channels ('order-alerts' with custom 'chaching' audio)
+        // Step 3: Configure Android Notification Channels ('woocommerce-order-alerts' with custom 'woo_commerce_order' chime)
         if (Platform.OS === 'android') {
           try {
+            await Notifications.setNotificationChannelAsync('woocommerce-order-alerts', {
+              name: 'WooCommerce Order Alerts',
+              importance: Notifications.AndroidImportance.MAX,
+              vibrationPattern: [0, 300, 200, 300],
+              lightColor: '#7c3aed',
+              sound: 'woo_commerce_order',
+              enableLights: true,
+              enableVibrate: true,
+              audioAttributes: {
+                usage: Notifications.AndroidAudioUsage.NOTIFICATION_COMMUNICATION_INSTANT,
+                contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+              },
+            });
             await Notifications.setNotificationChannelAsync('order-alerts', {
               name: 'New Order Alerts',
               importance: Notifications.AndroidImportance.MAX,
-              vibrationPattern: [0, 250, 250, 250],
+              vibrationPattern: [0, 300, 200, 300],
               lightColor: '#7c3aed',
-              sound: 'chaching',
+              sound: 'woo_commerce_order',
               enableLights: true,
               enableVibrate: true,
-            });
-            await Notifications.setNotificationChannelAsync('order-alerts-v2', {
-              name: 'Order Alerts (WooCommerce Chime)',
-              importance: Notifications.AndroidImportance.MAX,
-              vibrationPattern: [0, 250, 250, 250],
-              lightColor: '#7c3aed',
-              sound: 'chaching',
-              enableLights: true,
-              enableVibrate: true,
+              audioAttributes: {
+                usage: Notifications.AndroidAudioUsage.NOTIFICATION_COMMUNICATION_INSTANT,
+                contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+              },
             });
           } catch (channelErr) {
-            console.warn('[PushNotifications] order-alerts with chaching sound failed, falling back to default:', channelErr);
+            console.warn('[PushNotifications] order-alerts with woo_commerce_order sound failed, falling back:', channelErr);
             try {
-              await Notifications.setNotificationChannelAsync('order-alerts', {
-                name: 'New Order Alerts',
+              await Notifications.setNotificationChannelAsync('woocommerce-order-alerts', {
+                name: 'WooCommerce Order Alerts',
                 importance: Notifications.AndroidImportance.MAX,
                 vibrationPattern: [0, 250, 250, 250],
                 lightColor: '#0284c7',
@@ -242,6 +250,26 @@ export function usePushNotifications(): PushNotificationState {
           });
         } catch (responseErr) {
           console.warn('[PushNotifications] Response listener registration note:', responseErr);
+        }
+
+        // Step 10: Cold-Start Response Check (when app is opened directly by tapping a notification while closed)
+        try {
+          const initialResponse = await Notifications.getLastNotificationResponseAsync();
+          if (initialResponse && isMounted) {
+            const data = initialResponse.notification.request.content.data;
+            const orderId = data?.order_id || data?.orderId;
+            if (orderId) {
+              setTimeout(() => {
+                router.push(`/orders/${orderId}` as any);
+              }, 500);
+            } else if (data?.type === 'abandoned_checkout' && data?.abandoned_id) {
+              setTimeout(() => {
+                router.push(`/orders/abandoned/${data.abandoned_id}` as any);
+              }, 500);
+            }
+          }
+        } catch (coldStartErr) {
+          console.warn('[PushNotifications] Cold-start notification check note:', coldStartErr);
         }
       } catch (err) {
         console.warn('[PushNotifications] Initialization error:', err);
