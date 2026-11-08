@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   TextInput,
   Image,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -137,97 +138,100 @@ export default function ProductsScreen() {
     });
   };
 
-  const renderProductItem = ({ item }: { item: Product }) => {
-    const isOut = item.stock_quantity <= 0;
-    const isLow = item.stock_quantity > 0 && item.stock_quantity <= 5;
-    const hasSale =
-      item.sale_price !== null &&
-      Number(item.sale_price) > 0 &&
-      Number(item.sale_price) < item.price;
+  const renderProductItem = useCallback(
+    ({ item }: { item: Product }) => {
+      const isOut = item.stock_quantity <= 0;
+      const isLow = item.stock_quantity > 0 && item.stock_quantity <= 5;
+      const hasSale =
+        item.sale_price !== null &&
+        Number(item.sale_price) > 0 &&
+        Number(item.sale_price) < item.price;
 
-    return (
-      <TouchableOpacity
-        style={[styles.productCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => router.push(`/products/${item.id}`)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardMainRow}>
-          {/* 40x40 Thumbnail */}
-          <View style={[styles.thumbBox, { backgroundColor: colors.subtle }]}>
-            {item.image_url ? (
-              <Image source={{ uri: item.image_url }} style={styles.thumbImg} resizeMode="cover" />
-            ) : (
-              <Package size={18} color={colors.textMuted} />
-            )}
-          </View>
-
-          {/* Title & Category */}
-          <View style={{ flex: 1, marginHorizontal: 8 }}>
-            <Text style={[styles.productName, { color: colors.text }]} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <View style={styles.productMetaRow}>
-              {item.category_name ? (
-                <Text style={[styles.metaCategory, { color: colors.textSecondary }]}>
-                  {item.category_name}
-                </Text>
-              ) : null}
-              {item.sku ? (
-                <Text style={[styles.metaSku, { color: colors.textMuted }]}>
-                  • SKU: {item.sku}
-                </Text>
-              ) : null}
-            </View>
-
-            {/* Price */}
-            <View style={styles.priceRow}>
-              <CurrencyText
-                amount={hasSale ? item.sale_price : item.price}
-                currencySymbol={currencySymbol}
-                size="sm"
-                color={colors.text}
-                weight="700"
-              />
-              {hasSale && (
-                <Text style={[styles.strikePrice, { color: colors.textMuted }]}>
-                  {formatBanglaCurrency(item.price)}
-                </Text>
+      return (
+        <TouchableOpacity
+          style={[styles.productCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => router.push(`/products/${item.id}`)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardMainRow}>
+            {/* 40x40 Thumbnail */}
+            <View style={[styles.thumbBox, { backgroundColor: colors.subtle }]}>
+              {item.image_url ? (
+                <Image source={{ uri: item.image_url }} style={styles.thumbImg} resizeMode="cover" />
+              ) : (
+                <Package size={18} color={colors.textMuted} />
               )}
             </View>
-          </View>
 
-          {/* Quick Stock Indicator and Trigger */}
-          <TouchableOpacity
-            style={[
-              styles.stockPillBtn,
-              isOut
-                ? { backgroundColor: '#fee2e2' }
-                : isLow
-                ? { backgroundColor: '#fef3c7' }
-                : { backgroundColor: '#dcfce7' },
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleOpenStockModal(item);
-            }}
-            activeOpacity={0.7}
-          >
-            {isLow && <AlertTriangle size={11} color="#b45309" style={{ marginRight: 2 }} />}
-            <Text
+            {/* Title & Category */}
+            <View style={{ flex: 1, marginHorizontal: 8 }}>
+              <Text style={[styles.productName, { color: colors.text }]} numberOfLines={1}>
+                {item.name}
+              </Text>
+              <View style={styles.productMetaRow}>
+                {item.category_name ? (
+                  <Text style={[styles.metaCategory, { color: colors.textSecondary }]}>
+                    {item.category_name}
+                  </Text>
+                ) : null}
+                {item.sku ? (
+                  <Text style={[styles.metaSku, { color: colors.textMuted }]}>
+                    • SKU: {item.sku}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Price */}
+              <View style={styles.priceRow}>
+                <CurrencyText
+                  amount={hasSale ? item.sale_price : item.price}
+                  currencySymbol={currencySymbol}
+                  size="sm"
+                  color={colors.text}
+                  weight="700"
+                />
+                {hasSale && (
+                  <Text style={[styles.strikePrice, { color: colors.textMuted }]}>
+                    {formatBanglaCurrency(item.price)}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {/* Quick Stock Indicator and Trigger */}
+            <TouchableOpacity
               style={[
-                styles.stockPillText,
-                {
-                  color: isOut ? '#dc2626' : isLow ? '#b45309' : '#15803d',
-                },
+                styles.stockPillBtn,
+                isOut
+                  ? { backgroundColor: '#fee2e2' }
+                  : isLow
+                  ? { backgroundColor: '#fef3c7' }
+                  : { backgroundColor: '#dcfce7' },
               ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleOpenStockModal(item);
+              }}
+              activeOpacity={0.7}
             >
-              {isOut ? 'Out of Stock' : `Stock: ${item.stock_quantity}`}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+              {isLow && <AlertTriangle size={11} color="#b45309" style={{ marginRight: 2 }} />}
+              <Text
+                style={[
+                  styles.stockPillText,
+                  {
+                    color: isOut ? '#dc2626' : isLow ? '#b45309' : '#15803d',
+                  },
+                ]}
+              >
+                {isOut ? 'Out of Stock' : `Stock: ${item.stock_quantity}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [colors, currencySymbol, router]
+  );
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -344,6 +348,10 @@ export default function ProductsScreen() {
           renderItem={renderProductItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={Platform.OS === 'android'}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}

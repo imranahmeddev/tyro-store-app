@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -73,7 +74,7 @@ export default function CustomersScreen() {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   };
 
-  const renderCustomerItem = ({ item }: { item: Customer }) => {
+  const renderCustomerItem = useCallback(({ item }: { item: Customer }) => {
     return (
       <TouchableOpacity
         style={[styles.customerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -126,7 +127,7 @@ export default function CustomersScreen() {
         ) : null}
       </TouchableOpacity>
     );
-  };
+  }, [colors, currencySymbol, activeStore?.store_name, router]);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -192,6 +193,10 @@ export default function CustomersScreen() {
           renderItem={renderCustomerItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}

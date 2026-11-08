@@ -53,6 +53,8 @@ export interface ProductVariantItem {
   price?: number;
   sale_price?: number | null;
   stock: number;
+  digital_file_path?: string | null;
+  digital_download_instructions?: string | null;
 }
 
 export interface ProductImageItem {
@@ -68,7 +70,7 @@ interface ProductFormProps {
   productId?: string | number;
 }
 
-type TabType = 'general' | 'pricing' | 'inventory' | 'media' | 'variations' | 'taxonomy';
+type TabType = 'general' | 'pricing' | 'inventory' | 'media' | 'variations' | 'taxonomy' | 'digital';
 
 export default function ProductForm({ initialData, isEditing = false, productId }: ProductFormProps) {
   const router = useRouter();
@@ -82,8 +84,26 @@ export default function ProductForm({ initialData, isEditing = false, productId 
   // General Form State
   const [name, setName] = useState(initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
-  const [productType, setProductType] = useState<'simple' | 'variable'>(
-    initialData?.variants && initialData.variants.length > 0 ? 'variable' : 'simple'
+  const [productType, setProductType] = useState<'simple' | 'variable' | 'digital'>(
+    initialData?.product_type || (initialData?.variants && initialData.variants.length > 0 ? 'variable' : (initialData?.is_digital ? 'digital' : 'simple'))
+  );
+  const [isSoldIndividually, setIsSoldIndividually] = useState<boolean>(
+    initialData?.is_sold_individually ?? false
+  );
+  const [hasDigitalVariants, setHasDigitalVariants] = useState<boolean>(
+    initialData?.has_digital_variants ?? false
+  );
+  const [digitalFilePath, setDigitalFilePath] = useState<string>(
+    initialData?.digital_file_path || ''
+  );
+  const [digitalInstructions, setDigitalInstructions] = useState<string>(
+    initialData?.digital_download_instructions || ''
+  );
+  const [downloadLimit, setDownloadLimit] = useState<string>(
+    initialData?.download_limit !== null && initialData?.download_limit !== undefined ? String(initialData.download_limit) : ''
+  );
+  const [downloadExpiryDays, setDownloadExpiryDays] = useState<string>(
+    initialData?.download_expiry_days !== null && initialData?.download_expiry_days !== undefined ? String(initialData.download_expiry_days) : ''
   );
   const [shortDescription, setShortDescription] = useState(initialData?.short_description || '');
   const [description, setDescription] = useState(initialData?.description || '');
@@ -149,6 +169,15 @@ export default function ProductForm({ initialData, isEditing = false, productId 
       if (initialData.description) setDescription(initialData.description);
       if (initialData.category_id) setSelectedCategoryId(initialData.category_id);
 
+      if (initialData.product_type) setProductType(initialData.product_type);
+      else if (initialData.is_digital) setProductType('digital');
+      if (initialData.is_sold_individually !== undefined) setIsSoldIndividually(Boolean(initialData.is_sold_individually));
+      if (initialData.has_digital_variants !== undefined) setHasDigitalVariants(Boolean(initialData.has_digital_variants));
+      if (initialData.digital_file_path) setDigitalFilePath(initialData.digital_file_path);
+      if (initialData.digital_download_instructions) setDigitalInstructions(initialData.digital_download_instructions);
+      if (initialData.download_limit !== undefined && initialData.download_limit !== null) setDownloadLimit(String(initialData.download_limit));
+      if (initialData.download_expiry_days !== undefined && initialData.download_expiry_days !== null) setDownloadExpiryDays(String(initialData.download_expiry_days));
+
       if (initialData.images && Array.isArray(initialData.images)) {
         setImages(
           initialData.images.map((img: any, i: number) => ({
@@ -161,7 +190,7 @@ export default function ProductForm({ initialData, isEditing = false, productId 
       }
 
       if (initialData.variants && Array.isArray(initialData.variants) && initialData.variants.length > 0) {
-        setProductType('variable');
+        if (!initialData.product_type && !initialData.is_digital) setProductType('variable');
         setVariants(
           initialData.variants.map((v: any) => ({
             id: v.id,
@@ -170,6 +199,8 @@ export default function ProductForm({ initialData, isEditing = false, productId 
             price: Number(v.price) || Number(initialData.price) || 0,
             sale_price: v.sale_price ? Number(v.sale_price) : null,
             stock: Number(v.stock) || 0,
+            digital_file_path: v.digital_file_path || null,
+            digital_download_instructions: v.digital_download_instructions || null,
           }))
         );
       }
@@ -366,6 +397,14 @@ export default function ProductForm({ initialData, isEditing = false, productId 
         stock_quantity: parseInt(stockQuantity, 10) || 0,
         is_published: isActive,
         is_featured: isFeatured,
+        is_sold_individually: isSoldIndividually,
+        product_type: productType,
+        is_digital: productType === 'digital',
+        has_digital_variants: productType === 'digital' ? hasDigitalVariants : false,
+        digital_file_path: productType === 'digital' ? (digitalFilePath.trim() || null) : null,
+        digital_download_instructions: productType === 'digital' ? (digitalInstructions.trim() || null) : null,
+        download_limit: (productType === 'digital' && downloadLimit.trim()) ? parseInt(downloadLimit, 10) : null,
+        download_expiry_days: (productType === 'digital' && downloadExpiryDays.trim()) ? parseInt(downloadExpiryDays, 10) : null,
         short_description: shortDescription.trim() || null,
         description: description.trim() || null,
         images: images.map((img, i) => ({
@@ -375,7 +414,7 @@ export default function ProductForm({ initialData, isEditing = false, productId 
         })),
       };
 
-      if (productType === 'variable') {
+      if (productType === 'variable' || (productType === 'digital' && hasDigitalVariants)) {
         payload.variants = variants.map((v) => ({
           type: v.type,
           value: v.value,
@@ -383,6 +422,8 @@ export default function ProductForm({ initialData, isEditing = false, productId 
           price: v.price ?? regPriceNum,
           sale_price: v.sale_price ?? null,
           stock: v.stock,
+          digital_file_path: v.digital_file_path ?? null,
+          digital_download_instructions: v.digital_download_instructions ?? null,
         }));
       }
 
@@ -424,13 +465,14 @@ export default function ProductForm({ initialData, isEditing = false, productId 
       >
         {(
           [
-            { key: 'general', label: 'General' },
-            { key: 'pricing', label: 'Pricing' },
-            { key: 'inventory', label: 'Inventory' },
-            { key: 'media', label: `Media (${images.length})` },
-            { key: 'variations', label: `Matrix (${variants.length})` },
-            { key: 'taxonomy', label: 'Taxonomy' },
-          ] as const
+            { key: 'general' as const, label: 'General' },
+            { key: 'pricing' as const, label: 'Pricing' },
+            { key: 'inventory' as const, label: 'Inventory' },
+            { key: 'media' as const, label: `Media (${images.length})` },
+            ...(productType === 'digital' ? [{ key: 'digital' as const, label: 'Digital Assets' }] : []),
+            ...(productType === 'variable' || (productType === 'digital' && hasDigitalVariants) ? [{ key: 'variations' as const, label: `Matrix (${variants.length})` }] : []),
+            { key: 'taxonomy' as const, label: 'Taxonomy' },
+          ]
         ).map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -525,6 +567,25 @@ export default function ProductForm({ initialData, isEditing = false, productId 
                     Variable Matrix
                   </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.typePill,
+                    productType === 'digital' && styles.typePillActive,
+                  ]}
+                  onPress={() => setProductType('digital')}
+                  activeOpacity={0.7}
+                >
+                  <Sparkles size={14} color={productType === 'digital' ? '#ffffff' : '#64748b'} />
+                  <Text
+                    style={[
+                      styles.typePillText,
+                      productType === 'digital' && styles.typePillTextActive,
+                    ]}
+                  >
+                    Digital Item
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -575,6 +636,19 @@ export default function ProductForm({ initialData, isEditing = false, productId 
                 onValueChange={setIsFeatured}
                 trackColor={{ false: '#cbd5e1', true: '#bae6fd' }}
                 thumbColor={isFeatured ? '#0284c7' : '#f8fafc'}
+              />
+            </View>
+
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.switchLabel}>Sold Individually</Text>
+                <Text style={styles.switchSubtitle}>Limit purchases to 1 item per order (locks qty to 1)</Text>
+              </View>
+              <Switch
+                value={isSoldIndividually}
+                onValueChange={setIsSoldIndividually}
+                trackColor={{ false: '#cbd5e1', true: '#bae6fd' }}
+                thumbColor={isSoldIndividually ? '#0284c7' : '#f8fafc'}
               />
             </View>
           </View>
@@ -766,12 +840,12 @@ export default function ProductForm({ initialData, isEditing = false, productId 
         {/* 5. VARIABLE PRODUCT MATRIX TAB */}
         {activeTab === 'variations' && (
           <View style={styles.tabCard}>
-            {productType !== 'variable' ? (
+            {(productType !== 'variable' && !(productType === 'digital' && hasDigitalVariants)) ? (
               <View style={styles.upgradeToVariableBox}>
                 <Layers size={32} color="#0284c7" />
-                <Text style={styles.upgradeTitle}>Simple Product Selected</Text>
+                <Text style={styles.upgradeTitle}>Matrix Configuration</Text>
                 <Text style={styles.upgradeSubtitle}>
-                  Switch the product type to 'Variable Matrix' in the General tab to configure attributes and generate variation permutations.
+                  Switch the product type to 'Variable Matrix' or enable 'Variable Digital Files' to configure attributes and generate variation permutations.
                 </Text>
                 <TouchableOpacity
                   style={styles.switchTypeButton}
@@ -896,12 +970,122 @@ export default function ProductForm({ initialData, isEditing = false, productId 
                             </View>
                           </View>
                         </View>
+
+                        {(productType === 'digital' || hasDigitalVariants) && (
+                          <View style={{ marginTop: 8, gap: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
+                            <View>
+                              <Text style={styles.miniLabel}>Variant Download URL</Text>
+                              <TextInput
+                                style={styles.miniInput}
+                                placeholder="https://example.com/file.zip"
+                                placeholderTextColor="#94a3b8"
+                                value={v.digital_file_path || ''}
+                                onChangeText={(txt) => {
+                                  setVariants((prev) =>
+                                    prev.map((item, i) => (i === index ? { ...item, digital_file_path: txt } : item))
+                                  );
+                                }}
+                              />
+                            </View>
+                            <View>
+                              <Text style={styles.miniLabel}>Variant License / Instructions</Text>
+                              <TextInput
+                                style={[styles.miniInput, { height: 48 }]}
+                                placeholder="Serial keys or access details..."
+                                placeholderTextColor="#94a3b8"
+                                multiline
+                                value={v.digital_download_instructions || ''}
+                                onChangeText={(txt) => {
+                                  setVariants((prev) =>
+                                    prev.map((item, i) => (i === index ? { ...item, digital_download_instructions: txt } : item))
+                                  );
+                                }}
+                              />
+                            </View>
+                          </View>
+                        )}
                       </View>
                     ))}
                   </View>
                 )}
               </>
             )}
+          </View>
+        )}
+
+        {/* DIGITAL ASSETS TAB */}
+        {activeTab === 'digital' && (
+          <View style={styles.tabCard}>
+            <Text style={styles.sectionHeading}>Digital Product Delivery</Text>
+            <Text style={styles.sectionSubtitle}>
+              Configure digital file downloads, software license keys, or access instructions. Pure digital orders automatically receive ৳0 free shipping and optional physical address at checkout.
+            </Text>
+
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.switchLabel}>Variable Digital Files</Text>
+                <Text style={styles.switchSubtitle}>Each variant has a separate download file or license key</Text>
+              </View>
+              <Switch
+                value={hasDigitalVariants}
+                onValueChange={setHasDigitalVariants}
+                trackColor={{ false: '#cbd5e1', true: '#bae6fd' }}
+                thumbColor={hasDigitalVariants ? '#0284c7' : '#f8fafc'}
+              />
+            </View>
+
+            {!hasDigitalVariants && (
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Digital File URL / Download Link</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="https://example.com/downloads/file.zip or storage path"
+                  placeholderTextColor="#94a3b8"
+                  value={digitalFilePath}
+                  onChangeText={setDigitalFilePath}
+                />
+              </View>
+            )}
+
+            {!hasDigitalVariants && (
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>License Keys & Access Instructions</Text>
+                <TextInput
+                  style={[styles.input, styles.textAreaLarge]}
+                  placeholder="Serial keys, secret activation tokens, or direct access steps..."
+                  placeholderTextColor="#94a3b8"
+                  value={digitalInstructions}
+                  onChangeText={setDigitalInstructions}
+                  multiline
+                />
+              </View>
+            )}
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Download Limit</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 5 (blank for unlimited)"
+                  placeholderTextColor="#94a3b8"
+                  value={downloadLimit}
+                  onChangeText={setDownloadLimit}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Expiry Days</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 30 (blank for never)"
+                  placeholderTextColor="#94a3b8"
+                  value={downloadExpiryDays}
+                  onChangeText={setDownloadExpiryDays}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
           </View>
         )}
 

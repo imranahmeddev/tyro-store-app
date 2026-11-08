@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -78,7 +79,7 @@ export default function OrdersScreen() {
   } = useQuery({
     queryKey: ['orders_list', activeStore?.id, selectedStatus, searchQuery],
     queryFn: async () => {
-      const params: Record<string, any> = { per_page: 50 };
+      const params: Record<string, any> = { per_page: 25 };
       if (selectedStatus === 'abandoned') {
         params.status = 'abandoned';
       } else if (selectedStatus !== 'any') {
@@ -110,94 +111,97 @@ export default function OrdersScreen() {
     }
   };
 
-  const renderOrderItem = ({ item }: { item: Order }) => {
-    const isAbandoned = Boolean(item.is_abandoned || item.status === 'abandoned');
-    const isRecovered = Boolean(item.is_recovered);
-    const invoiceDisplay = `#${item.invoice_no || item.order_number || item.id}`;
+  const renderOrderItem = useCallback(
+    ({ item }: { item: Order }) => {
+      const isAbandoned = Boolean(item.is_abandoned || item.status === 'abandoned');
+      const isRecovered = Boolean(item.is_recovered);
+      const invoiceDisplay = `#${item.invoice_no || item.order_number || item.id}`;
 
-    return (
-      <TouchableOpacity
-        style={[
-          styles.orderCard,
-          {
-            backgroundColor: colors.surface,
-            borderColor: isAbandoned
-              ? isRecovered
-                ? '#bbf7d0'
-                : '#fde68a'
-              : colors.border,
-          },
-        ]}
-        onPress={() => {
-          if (isAbandoned) {
-            router.push(`/orders/abandoned/${item.id}` as any);
-          } else {
-            router.push(`/orders/${item.id}` as any);
-          }
-        }}
-        activeOpacity={0.7}
-      >
-        {/* Top line: Invoice #, Date, Status pill */}
-        <View style={styles.cardHeaderRow}>
-          <View style={styles.invoiceDateGroup}>
-            <Text style={[styles.invoiceText, { color: colors.text }]}>
-              {invoiceDisplay}
-            </Text>
-            <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-              {formatShortDate(item.created_at)}
-            </Text>
-          </View>
-
-          <StatusBadge
-            status={isAbandoned ? (isRecovered ? 'recovered' : 'abandoned') : item.status || 'processing'}
-            size="sm"
-          />
-        </View>
-
-        {/* Middle Line: Customer name & Price */}
-        <View style={styles.cardMainRow}>
-          <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={[styles.customerName, { color: colors.text }]} numberOfLines={1}>
-              {item.customer_name || 'Customer'}
-            </Text>
-            {item.customer_phone ? (
-              <Text style={[styles.customerPhone, { color: colors.textSecondary }]}>
-                {item.customer_phone}
+      return (
+        <TouchableOpacity
+          style={[
+            styles.orderCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: isAbandoned
+                ? isRecovered
+                  ? '#bbf7d0'
+                  : '#fde68a'
+                : colors.border,
+            },
+          ]}
+          onPress={() => {
+            if (isAbandoned) {
+              router.push(`/orders/abandoned/${item.id}` as any);
+            } else {
+              router.push(`/orders/${item.id}` as any);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          {/* Top line: Invoice #, Date, Status pill */}
+          <View style={styles.cardHeaderRow}>
+            <View style={styles.invoiceDateGroup}>
+              <Text style={[styles.invoiceText, { color: colors.text }]}>
+                {invoiceDisplay}
               </Text>
-            ) : null}
+              <Text style={[styles.dateText, { color: colors.textSecondary }]}>
+                {formatShortDate(item.created_at)}
+              </Text>
+            </View>
+
+            <StatusBadge
+              status={isAbandoned ? (isRecovered ? 'recovered' : 'abandoned') : item.status || 'processing'}
+              size="sm"
+            />
           </View>
 
-          <View style={styles.amountWrapper}>
-            <CurrencyText
-              amount={item.total_amount}
-              currencySymbol={currencySymbol}
-              size="md"
-              color={colors.text}
-              weight="700"
-            />
-            <ChevronRight size={15} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-          </View>
-        </View>
+          {/* Middle Line: Customer name & Price */}
+          <View style={styles.cardMainRow}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={[styles.customerName, { color: colors.text }]} numberOfLines={1}>
+                {item.customer_name || 'Customer'}
+              </Text>
+              {item.customer_phone ? (
+                <Text style={[styles.customerPhone, { color: colors.textSecondary }]}>
+                  {item.customer_phone}
+                </Text>
+              ) : null}
+            </View>
 
-        {/* Bottom Actions: 1-Tap Call & WhatsApp */}
-        {item.customer_phone ? (
-          <View style={styles.cardActionsRow}>
-            <QuickActionButton type="call" phone={item.customer_phone} />
-            <QuickActionButton
-              type="whatsapp"
-              phone={item.customer_phone}
-              message={
-                isAbandoned
-                  ? `Hello ${item.customer_name || 'there'}, we noticed you left items in your cart at ${activeStore?.store_name || 'our store'}. Would you like help completing your order?`
-                  : `Hello ${item.customer_name || 'there'}, this is regarding your order ${invoiceDisplay} at ${activeStore?.store_name || 'our store'}.`
-              }
-            />
-            <QuickActionButton type="copy" textToCopy={item.customer_phone} label="Copy Phone" />
+            <View style={styles.amountWrapper}>
+              <CurrencyText
+                amount={item.total_amount}
+                currencySymbol={currencySymbol}
+                size="md"
+                color={colors.text}
+                weight="700"
+              />
+              <ChevronRight size={15} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            </View>
           </View>
-        ) : null}
-      </TouchableOpacity>
-    );
-  };
+
+          {/* Bottom Actions: 1-Tap Call & WhatsApp */}
+          {item.customer_phone ? (
+            <View style={styles.cardActionsRow}>
+              <QuickActionButton type="call" phone={item.customer_phone} />
+              <QuickActionButton
+                type="whatsapp"
+                phone={item.customer_phone}
+                message={
+                  isAbandoned
+                    ? `Hello ${item.customer_name || 'there'}, we noticed you left items in your cart at ${activeStore?.store_name || 'our store'}. Would you like help completing your order?`
+                    : `Hello ${item.customer_name || 'there'}, this is regarding your order ${invoiceDisplay} at ${activeStore?.store_name || 'our store'}.`
+                }
+              />
+              <QuickActionButton type="copy" textToCopy={item.customer_phone} label="Copy Phone" />
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      );
+    },
+    [colors, currencySymbol, activeStore?.store_name, router]
+  );
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -313,6 +317,10 @@ export default function OrdersScreen() {
           renderItem={renderOrderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={Platform.OS === 'android'}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}

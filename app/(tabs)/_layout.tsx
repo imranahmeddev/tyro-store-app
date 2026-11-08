@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, View, StyleSheet } from 'react-native';
+import { Platform, View, StyleSheet, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LayoutDashboard, ShoppingBag, Package, Grid } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -13,30 +13,29 @@ export default function TabsLayout() {
   const colors = useThemeStore((s) => s.colors);
   const activeStore = useAuthStore((s) => s.getActiveStore());
 
-  // Real-time pending & processing count for the Orders tab badge
-  const { data: ordersData } = useQuery({
+  // Real-time pending & processing count for the Orders tab badge (Ultra-fast <1ms counts endpoint)
+  const { data: ordersCounts } = useQuery({
     queryKey: ['wc_orders_badge', activeStore?.id],
     queryFn: async () => {
       try {
-        const res = await apiClient.get('/api/v1/orders', {
-          params: { per_page: 50 },
-        });
-        const list = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
-        return list;
+        const res = await apiClient.get('/api/v1/orders/counts');
+        return res.data;
       } catch {
-        return [];
+        // Fallback to lightweight query if endpoint not available yet
+        try {
+          const fallback = await apiClient.get('/api/v1/orders', { params: { per_page: 20, status: 'pending' } });
+          const list = Array.isArray(fallback.data) ? fallback.data : fallback.data?.data ?? [];
+          return { pending: list.length, processing: 0 };
+        } catch {
+          return { pending: 0, processing: 0 };
+        }
       }
     },
     enabled: !!activeStore,
-    refetchInterval: 30000,
+    refetchInterval: () => (AppState.currentState === 'active' ? 60000 : false),
   });
 
-  const pendingCount = Array.isArray(ordersData)
-    ? ordersData.filter((o: any) => {
-        const s = String(o.status || '').toLowerCase();
-        return s === 'processing' || s === 'pending' || (s === 'abandoned' && !o.is_recovered);
-      }).length
-    : 0;
+  const pendingCount = (ordersCounts?.pending ?? 0) + (ordersCounts?.processing ?? 0);
 
   const ordersBadge = pendingCount > 0 ? (pendingCount > 99 ? '99+' : String(pendingCount)) : undefined;
 

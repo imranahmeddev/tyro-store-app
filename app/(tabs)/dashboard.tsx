@@ -171,7 +171,8 @@ export default function DashboardScreen() {
 
   const handleShareStore = async () => {
     try {
-      const url = activeStore?.store_url || 'https://aamzo.com';
+      const url = activeStore?.store_url;
+      if (!url) return;
       await Share.share({
         title: activeStore?.store_name || 'My Store',
         message: `Visit our store: ${url}`,
