@@ -36,6 +36,7 @@ import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import CurrencyText, { formatBanglaCurrency } from '../../src/components/ui/CurrencyText';
+import { resolveProductImage } from '../../src/utils/image';
 
 export interface EditableItem {
   id?: number;
@@ -360,11 +361,14 @@ export default function OrderEditScreen() {
                   >
                     {/* Thumbnail */}
                     <View style={[styles.itemThumb, { backgroundColor: colors.subtle }]}>
-                      {it.image ? (
-                        <Image source={{ uri: it.image }} style={styles.thumbImg} resizeMode="cover" />
-                      ) : (
-                        <Package size={16} color={colors.textMuted} />
-                      )}
+                      {(() => {
+                        const itImg = resolveProductImage(it);
+                        return itImg ? (
+                          <Image source={{ uri: itImg }} style={styles.thumbImg} resizeMode="cover" />
+                        ) : (
+                          <Package size={16} color={colors.textMuted} />
+                        );
+                      })()}
                     </View>
 
                     {/* Product & Variation Info */}
@@ -683,15 +687,18 @@ export default function OrderEditScreen() {
                     <View key={prod.id} style={[styles.searchResultCard, { borderColor: colors.border }]}>
                       <View style={styles.searchResultMain}>
                         <View style={[styles.itemThumb, { backgroundColor: colors.subtle }]}>
-                          {prod.image_url || prod.primary_image_url ? (
-                            <Image
-                              source={{ uri: prod.image_url || prod.primary_image_url }}
-                              style={styles.thumbImg}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <Package size={15} color={colors.textMuted} />
-                          )}
+                          {(() => {
+                            const pImg = resolveProductImage(prod);
+                            return pImg ? (
+                              <Image
+                                source={{ uri: pImg }}
+                                style={styles.thumbImg}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <Package size={15} color={colors.textMuted} />
+                            );
+                          })()}
                         </View>
 
                         <View style={{ flex: 1, marginHorizontal: 8 }}>

@@ -31,6 +31,7 @@ import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import CurrencyText, { formatBanglaCurrency } from '../../src/components/ui/CurrencyText';
+import { resolveProductImage } from '../../src/utils/image';
 
 export interface ProductVariant {
   id: number;
@@ -156,11 +157,14 @@ export default function ProductsScreen() {
           <View style={styles.cardMainRow}>
             {/* 40x40 Thumbnail */}
             <View style={[styles.thumbBox, { backgroundColor: colors.subtle }]}>
-              {item.image_url ? (
-                <Image source={{ uri: item.image_url }} style={styles.thumbImg} resizeMode="cover" />
-              ) : (
-                <Package size={18} color={colors.textMuted} />
-              )}
+              {(() => {
+                const imgUri = resolveProductImage(item);
+                return imgUri ? (
+                  <Image source={{ uri: imgUri }} style={styles.thumbImg} resizeMode="cover" />
+                ) : (
+                  <Package size={18} color={colors.textMuted} />
+                );
+              })()}
             </View>
 
             {/* Title & Category */}

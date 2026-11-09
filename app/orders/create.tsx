@@ -40,6 +40,7 @@ import BarcodeScanner from '../../src/components/BarcodeScanner';
 import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import { resolveProductImage } from '../../src/utils/image';
 
 interface SelectedItem {
   product_id: number;
@@ -115,7 +116,7 @@ export default function CreateOrderScreen() {
         {
           product_id: product.id,
           product_name: product.name,
-          image: product.image_url || product.thumbnail || null,
+          image: resolveProductImage(product),
           sku: product.sku || null,
           quantity: 1,
           unit_price: price,
@@ -439,11 +440,14 @@ export default function CreateOrderScreen() {
                   >
                     <View style={styles.searchResultLeft}>
                       <View style={styles.searchResultThumb}>
-                        {product.image_url ? (
-                          <Image source={{ uri: product.image_url }} style={styles.thumbImage} />
-                        ) : (
-                          <Package size={18} color="#94a3b8" />
-                        )}
+                        {(() => {
+                          const sImg = resolveProductImage(product);
+                          return sImg ? (
+                            <Image source={{ uri: sImg }} style={styles.thumbImage} />
+                          ) : (
+                            <Package size={18} color="#94a3b8" />
+                          );
+                        })()}
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.searchResultName} numberOfLines={1}>
@@ -483,11 +487,14 @@ export default function CreateOrderScreen() {
               {selectedItems.map((item) => (
                 <View key={item.product_id} style={styles.cartItemRow}>
                   <View style={styles.cartItemThumb}>
-                    {item.image ? (
-                      <Image source={{ uri: item.image }} style={styles.thumbImage} />
-                    ) : (
-                      <Package size={18} color="#94a3b8" />
-                    )}
+                    {(() => {
+                      const cImg = resolveProductImage(item);
+                      return cImg ? (
+                        <Image source={{ uri: cImg }} style={styles.thumbImage} />
+                      ) : (
+                        <Package size={18} color="#94a3b8" />
+                      );
+                    })()}
                   </View>
 
                   <View style={styles.cartItemInfo}>

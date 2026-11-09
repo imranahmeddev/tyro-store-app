@@ -29,6 +29,7 @@ import apiClient from '../../src/api/client';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import MiniSparkline from '../../src/components/MiniSparkline';
+import { resolveProductImage } from '../../src/utils/image';
 
 const PERIOD_OPTIONS = [
   { key: 'today', label: 'Today', title: 'Today' },
@@ -497,13 +498,16 @@ export default function AnalyticsScreen() {
                         <View style={[styles.deletedIconBox, { backgroundColor: colors.isDark ? '#27272a' : '#e4e4e7' }]}>
                           <Archive size={20} color={colors.textSecondary} />
                         </View>
-                      ) : item.image_url ? (
-                        <Image source={{ uri: item.image_url }} style={styles.productThumbImg} />
-                      ) : (
-                        <View style={[styles.deletedIconBox, { backgroundColor: colors.isDark ? '#27272a' : '#e4e4e7' }]}>
-                          <Package size={20} color={colors.textSecondary} />
-                        </View>
-                      )}
+                      ) : (() => {
+                        const aImg = resolveProductImage(item);
+                        return aImg ? (
+                          <Image source={{ uri: aImg }} style={styles.productThumbImg} />
+                        ) : (
+                          <View style={[styles.deletedIconBox, { backgroundColor: colors.isDark ? '#27272a' : '#e4e4e7' }]}>
+                            <Package size={20} color={colors.textSecondary} />
+                          </View>
+                        );
+                      })()}
                     </View>
 
                     <View style={styles.productInfoBox}>

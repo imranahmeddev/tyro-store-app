@@ -37,6 +37,7 @@ import { useThemeStore } from '../../src/store/themeStore';
 import StatusBadge from '../../src/components/ui/StatusBadge';
 import CurrencyText, { formatBanglaCurrency } from '../../src/components/ui/CurrencyText';
 import QuickActionButton from '../../src/components/ui/QuickActionButton';
+import { resolveProductImage } from '../../src/utils/image';
 
 const STATUS_LIST = [
   'pending',
@@ -340,11 +341,14 @@ export default function OrderDetailsScreen() {
                   ]}
                 >
                   <View style={[styles.itemThumb, { backgroundColor: colors.subtle }]}>
-                    {item.image ? (
-                      <Image source={{ uri: item.image }} style={styles.thumbImg} resizeMode="cover" />
-                    ) : (
-                      <Package size={15} color={colors.textMuted} />
-                    )}
+                    {(() => {
+                      const itemImgUri = resolveProductImage(item);
+                      return itemImgUri ? (
+                        <Image source={{ uri: itemImgUri }} style={styles.thumbImg} resizeMode="cover" />
+                      ) : (
+                        <Package size={15} color={colors.textMuted} />
+                      );
+                    })()}
                   </View>
 
                   <View style={{ flex: 1, marginHorizontal: 8 }}>

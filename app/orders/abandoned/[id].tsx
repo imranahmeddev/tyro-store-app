@@ -36,6 +36,7 @@ import {
 import apiClient from '../../../src/api/client';
 import { useAuthStore } from '../../../src/store/authStore';
 import { useThemeStore } from '../../../src/store/themeStore';
+import { resolveProductImage } from '../../../src/utils/image';
 
 export interface AbandonedCartItem {
   id: number;
@@ -401,13 +402,16 @@ export default function AbandonedCheckoutDetailScreen() {
                   idx === itemsList.length - 1 && { borderBottomWidth: 0 },
                 ]}
               >
-                {item.image ? (
-                  <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="cover" />
-                ) : (
-                  <View style={[styles.itemImageFallback, { backgroundColor: colors.isDark ? '#27272a' : '#f4f4f5' }]}>
-                    <Package size={20} color={colors.textSecondary} />
-                  </View>
-                )}
+                {(() => {
+                  const itemImgUri = resolveProductImage(item);
+                  return itemImgUri ? (
+                    <Image source={{ uri: itemImgUri }} style={styles.itemImage} resizeMode="cover" />
+                  ) : (
+                    <View style={[styles.itemImageFallback, { backgroundColor: colors.isDark ? '#27272a' : '#f4f4f5' }]}>
+                      <Package size={20} color={colors.textSecondary} />
+                    </View>
+                  );
+                })()}
 
                 <View style={styles.itemDetails}>
                   <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={2}>

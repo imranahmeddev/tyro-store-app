@@ -34,6 +34,7 @@ import {
 } from 'lucide-react-native';
 import apiClient from '../../../src/api/client';
 import { useAuthStore } from '../../../src/store/authStore';
+import { resolveProductImage } from '../../../src/utils/image';
 
 export interface ReviewItem {
   id: number;
@@ -275,16 +276,19 @@ export default function ReviewModerationScreen() {
 
         {/* Product Reference Card */}
         <View style={styles.productSnippet}>
-          {item.product_thumbnail ? (
-            <Image
-              source={{ uri: item.product_thumbnail }}
-              style={styles.productImage}
-            />
-          ) : (
-            <View style={styles.productPlaceholder}>
-              <Package size={16} color="#94a3b8" />
-            </View>
-          )}
+          {(() => {
+            const rImg = resolveProductImage(item.product_thumbnail || item);
+            return rImg ? (
+              <Image
+                source={{ uri: rImg }}
+                style={styles.productImage}
+              />
+            ) : (
+              <View style={styles.productPlaceholder}>
+                <Package size={16} color="#94a3b8" />
+              </View>
+            );
+          })()}
           <View style={styles.productSnippetInfo}>
             <Text style={styles.productSnippetLabel}>Product</Text>
             <Text style={styles.productSnippetName} numberOfLines={1}>

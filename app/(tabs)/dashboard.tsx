@@ -38,6 +38,7 @@ import InteractiveRevenueChart, {
 import StatusBadge from '../../src/components/ui/StatusBadge';
 import CurrencyText, { formatBanglaCurrency } from '../../src/components/ui/CurrencyText';
 import QuickActionButton from '../../src/components/ui/QuickActionButton';
+import { resolveProductImage } from '../../src/utils/image';
 
 const PERIOD_TABS = [
   { key: 'today', label: 'Today' },
@@ -125,7 +126,7 @@ export default function DashboardScreen() {
               name: item.product_name || 'Product',
               qty: 0,
               rev: 0,
-              img: item.image,
+              img: resolveProductImage(item) || undefined,
             };
           }
           productSalesMap[key].qty += Number(item.quantity || 1);
@@ -530,11 +531,14 @@ export default function DashboardScreen() {
                     ]}
                   >
                     <View style={[styles.productThumbBox, { backgroundColor: colors.subtle }]}>
-                      {prod.img ? (
-                        <Image source={{ uri: prod.img }} style={styles.productThumb} resizeMode="cover" />
-                      ) : (
-                        <Package size={16} color={colors.textMuted} />
-                      )}
+                      {(() => {
+                        const prodImgUri = resolveProductImage(prod.img || prod);
+                        return prodImgUri ? (
+                          <Image source={{ uri: prodImgUri }} style={styles.productThumb} resizeMode="cover" />
+                        ) : (
+                          <Package size={16} color={colors.textMuted} />
+                        );
+                      })()}
                     </View>
 
                     <View style={{ flex: 1, marginHorizontal: 8 }}>

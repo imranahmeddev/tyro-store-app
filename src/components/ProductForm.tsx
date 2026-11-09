@@ -38,6 +38,7 @@ import BarcodeScanner from './BarcodeScanner';
 import apiClient from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
+import { resolveProductImage } from '../utils/image';
 
 export interface ProductAttribute {
   id: string;
@@ -178,15 +179,30 @@ export default function ProductForm({ initialData, isEditing = false, productId 
       if (initialData.download_limit !== undefined && initialData.download_limit !== null) setDownloadLimit(String(initialData.download_limit));
       if (initialData.download_expiry_days !== undefined && initialData.download_expiry_days !== null) setDownloadExpiryDays(String(initialData.download_expiry_days));
 
-      if (initialData.images && Array.isArray(initialData.images)) {
+      if (initialData.images && Array.isArray(initialData.images) && initialData.images.length > 0) {
         setImages(
-          initialData.images.map((img: any, i: number) => ({
-            id: img.id,
-            path: img.url || img.path,
-            url: img.url || img.path,
-            is_primary: img.is_primary ?? i === 0,
-          }))
+          initialData.images.map((img: any, i: number) => {
+            const resolved = resolveProductImage(img) || img.url || img.path;
+            return {
+              id: img.id,
+              path: img.path || resolved,
+              url: resolved,
+              is_primary: img.is_primary ?? i === 0,
+            };
+          })
         );
+      } else if (initialData.image_url || initialData.image) {
+        const resolved = resolveProductImage(initialData);
+        if (resolved) {
+          setImages([
+            {
+              id: 0,
+              path: resolved,
+              url: resolved,
+              is_primary: true,
+            },
+          ]);
+        }
       }
 
       if (initialData.variants && Array.isArray(initialData.variants) && initialData.variants.length > 0) {
@@ -804,9 +820,17 @@ export default function ProductForm({ initialData, isEditing = false, productId 
 
             {/* Images Grid */}
             <View style={styles.imagesGrid}>
-              {images.map((img, index) => (
-                <View key={index} style={styles.imageCard}>
-                  <Image source={{ uri: img.url }} style={styles.galleryImage} />
+              {images.map((img, index) => {
+                const imgUri = resolveProductImage(img.url || img.path || img);
+                return (
+                  <View key={index} style={styles.imageCard}>
+                    {imgUri ? (
+                      <Image source={{ uri: imgUri }} style={styles.galleryImage} />
+                    ) : (
+                      <View style={[styles.galleryImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }]}>
+                        <ImageIcon size={22} color="#94a3b8" />
+                      </View>
+                    )}
                   {img.is_primary && (
                     <View style={styles.primaryBadge}>
                       <Star size={10} color="#ffffff" fill="#ffffff" />
@@ -832,7 +856,8 @@ export default function ProductForm({ initialData, isEditing = false, productId 
                     </TouchableOpacity>
                   </View>
                 </View>
-              ))}
+              );
+            })}
             </View>
           </View>
         )}
